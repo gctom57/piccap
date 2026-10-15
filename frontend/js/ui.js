@@ -6,105 +6,36 @@ function logIt(message) {
   textareaConsoleLog.value += `${message}\n`;
 }
 
+function setButtonActive(btnId, active) {
+  const btn = document.getElementById(btnId);
+  btn.style.background = active ? 'white' : null;
+  btn.style.color = active ? 'black' : null;
+}
+
+const views = {
+  service: 'btnNavService',
+  settings: 'btnNavSettings',
+  logs: 'btnNavLogs',
+  about: 'btnNavAbout',
+};
+
 /* eslint-disable func-names */
 window.switchView = function (view) {
-  const service = document.getElementById('service');
-  const settings = document.getElementById('settings');
-  const logs = document.getElementById('logs');
-  const about = document.getElementById('about');
+  const known = Object.prototype.hasOwnProperty.call(views, view);
+  Object.keys(views).forEach((name) => {
+    let display = null;
+    if (known) {
+      display = name === view ? 'block' : 'none';
+    }
+    document.getElementById(name).style.display = display;
+    setButtonActive(views[name], known && name === view);
+  });
 
-  const btnservice = document.getElementById('btnNavService');
-  const btnsettings = document.getElementById('btnNavSettings');
-  const btnlogs = document.getElementById('btnNavLogs');
-  const btnabout = document.getElementById('btnNavAbout');
-
-  const settingItemsAdv = document.getElementById('settingItemsAdv');
-  const settingItemsNormal = document.getElementById('settingItemsNormal');
-  const btnAdvanced = document.getElementById('btnSettingsAdvanced');
-  switch (view) {
-    case 'service':
-      service.style.display = 'block';
-      btnservice.style.background = 'white';
-      btnservice.style.color = 'black';
-
-      settings.style.display = 'none';
-      btnsettings.style.background = null;
-      btnsettings.style.color = null;
-
-      logs.style.display = 'none';
-      btnlogs.style.background = null;
-      btnlogs.style.color = null;
-
-      about.style.display = 'none';
-      btnabout.style.background = null;
-      btnabout.style.color = null;
-      break;
-    case 'settings':
-      service.style.display = 'none';
-      btnservice.style.background = null;
-      btnservice.style.color = null;
-
-      settings.style.display = 'block';
-      btnsettings.style.background = 'white';
-      btnsettings.style.color = 'black';
-
-      logs.style.display = 'none';
-      btnlogs.style.background = null;
-      btnlogs.style.color = null;
-
-      about.style.display = 'none';
-      btnabout.style.background = null;
-      btnabout.style.color = null;
-
-      // Open non advanced page
-      btnAdvanced.style.background = null;
-      btnAdvanced.style.color = null;
-      settingItemsNormal.style.display = 'block';
-      settingItemsAdv.style.display = 'none';
-      break;
-    case 'logs':
-      service.style.display = 'none';
-      btnservice.style.background = null;
-      btnservice.style.color = null;
-
-      settings.style.display = 'none';
-      btnsettings.style.background = null;
-      btnsettings.style.color = null;
-
-      logs.style.display = 'block';
-      btnlogs.style.background = 'white';
-      btnlogs.style.color = 'black';
-
-      about.style.display = 'none';
-      btnabout.style.background = null;
-      btnabout.style.color = null;
-      break;
-    case 'about':
-      service.style.display = 'none';
-      btnservice.style.background = null;
-      btnservice.style.color = null;
-
-      settings.style.display = 'none';
-      btnsettings.style.background = null;
-      btnsettings.style.color = null;
-
-      logs.style.display = 'none';
-      btnlogs.style.background = null;
-      btnlogs.style.color = null;
-
-      about.style.display = 'block';
-      btnabout.style.background = 'white';
-      btnabout.style.color = 'black';
-      break;
-    default:
-      service.style.display = null;
-      btnservice.style.background = null;
-      btnservice.style.color = null;
-
-      settings.style.display = null;
-      logs.style.display = null;
-      about.style.display = null;
-      break;
+  if (view === 'settings') {
+    // Open non advanced page
+    setButtonActive('btnSettingsAdvanced', false);
+    document.getElementById('settingItemsNormal').style.display = 'block';
+    document.getElementById('settingItemsAdv').style.display = 'none';
   }
 };
 
@@ -129,43 +60,18 @@ window.socketSelectChanged = function (elem) {
 window.toggleAdvanced = function () {
   const settingItemsAdv = document.getElementById('settingItemsAdv');
   const settingItemsNormal = document.getElementById('settingItemsNormal');
-  const btnAdvanced = document.getElementById('btnSettingsAdvanced');
-  if (settingItemsNormal.style.display === 'block') {
-    btnAdvanced.style.background = 'white';
-    btnAdvanced.style.color = 'black';
-    settingItemsNormal.style.display = 'none';
-    settingItemsAdv.style.display = 'block';
-  } else {
-    btnAdvanced.style.background = null;
-    btnAdvanced.style.color = null;
-    settingItemsNormal.style.display = 'block';
-    settingItemsAdv.style.display = 'none';
-  }
+  const showAdvanced = settingItemsNormal.style.display === 'block';
+  setButtonActive('btnSettingsAdvanced', showAdvanced);
+  settingItemsNormal.style.display = showAdvanced ? 'none' : 'block';
+  settingItemsAdv.style.display = showAdvanced ? 'block' : 'none';
 };
 
 window.switchLog = function (location) {
-  const divConsoleLog = document.getElementById('consoleLog');
-  const divHyperionLog = document.getElementById('hyperionLog');
-  const btnLogSwitchPicCap = document.getElementById('btnLogSwitchPicCap');
-  const btnLogSwitchHyperion = document.getElementById('btnLogSwitchHyperion');
-
-  if (location === 'hyperion') {
-    divConsoleLog.style.display = 'none';
-    divHyperionLog.style.display = 'block';
-
-    btnLogSwitchHyperion.style.background = 'white';
-    btnLogSwitchHyperion.style.color = 'black';
-    btnLogSwitchPicCap.style.background = null;
-    btnLogSwitchPicCap.style.color = null;
-  } else {
-    divConsoleLog.style.display = 'block';
-    divHyperionLog.style.display = 'none';
-
-    btnLogSwitchPicCap.style.background = 'white';
-    btnLogSwitchPicCap.style.color = 'black';
-    btnLogSwitchHyperion.style.background = null;
-    btnLogSwitchHyperion.style.color = null;
-  }
+  const showHyperion = location === 'hyperion';
+  document.getElementById('consoleLog').style.display = showHyperion ? 'none' : 'block';
+  document.getElementById('hyperionLog').style.display = showHyperion ? 'block' : 'none';
+  setButtonActive('btnLogSwitchHyperion', showHyperion);
+  setButtonActive('btnLogSwitchPicCap', !showHyperion);
 };
 
 /* eslint-enable func-names */
@@ -174,63 +80,35 @@ function saveLightMode(color) {
   localStorage.setItem('lightMode', color);
 }
 
+const lightModes = {
+  blue: 'btnLightBlue',
+  dark: 'btnLightDark',
+  black: 'btnLightBlack',
+};
+
 /* eslint-disable func-names */
 window.switchLightMode = function (color) {
-  const btnLightBlue = document.getElementById('btnLightBlue');
-  const btnLightDark = document.getElementById('btnLightDark');
-  const btnLightBlack = document.getElementById('btnLightBlack');
-
-  switch (color) {
-    case 'blue':
-      btnLightBlue.style.background = 'white';
-      btnLightBlue.style.color = 'black';
-      btnLightDark.style.background = null;
-      btnLightDark.style.color = null;
-      btnLightBlack.style.background = null;
-      btnLightBlack.style.color = null;
-      document.querySelectorAll('.darkMode, .blackMode').forEach((elem) => elem.classList.add('blueMode'));
-      document.querySelectorAll('.darkMode').forEach((elem) => elem.classList.remove('darkMode'));
-      document.querySelectorAll('.blackMode').forEach((elem) => elem.classList.remove('blackMode'));
-      saveLightMode('blue');
-      break;
-    case 'dark':
-      btnLightBlue.style.background = null;
-      btnLightBlue.style.color = null;
-      btnLightDark.style.background = 'white';
-      btnLightDark.style.color = 'black';
-      btnLightBlack.style.background = null;
-      btnLightBlack.style.color = null;
-      document.querySelectorAll('.blueMode, .blackMode').forEach((elem) => elem.classList.add('darkMode'));
-      document.querySelectorAll('.blueMode').forEach((elem) => elem.classList.remove('blueMode'));
-      document.querySelectorAll('.blackMode').forEach((elem) => elem.classList.remove('blackMode'));
-      saveLightMode('dark');
-      break;
-    case 'black':
-      btnLightBlue.style.background = null;
-      btnLightBlue.style.color = null;
-      btnLightDark.style.background = null;
-      btnLightDark.style.color = null;
-      btnLightBlack.style.background = 'white';
-      btnLightBlack.style.color = 'black';
-      document.querySelectorAll('.blueMode, .darkMode').forEach((elem) => elem.classList.add('blackMode'));
-      document.querySelectorAll('.blueMode').forEach((elem) => elem.classList.remove('blueMode'));
-      document.querySelectorAll('.darkMode').forEach((elem) => elem.classList.remove('darkMode'));
-      saveLightMode('black');
-      break;
-    default:
-      logIt(`${color} not found. Using blue as default.`);
-      /* eslint-disable no-undef */
-      switchLightMode('blue');
-      /* eslint-enable no-undef */
-      break;
+  if (!Object.prototype.hasOwnProperty.call(lightModes, color)) {
+    logIt(`${color} not found. Using blue as default.`);
+    window.switchLightMode('blue');
+    return;
   }
+
+  Object.keys(lightModes).forEach((mode) => {
+    setButtonActive(lightModes[mode], mode === color);
+    if (mode !== color) {
+      document.querySelectorAll(`.${mode}Mode`).forEach((elem) => {
+        elem.classList.add(`${color}Mode`);
+        elem.classList.remove(`${mode}Mode`);
+      });
+    }
+  });
+  saveLightMode(color);
 };
 
 function loadLightMode() {
   const lightMode = localStorage.getItem('lightMode');
-  /* eslint-disable no-undef */
-  switchLightMode(lightMode);
-  /* eslint-enable no-undef */
+  window.switchLightMode(lightMode);
 }
 
 function getJSON(url, callback) {
@@ -277,7 +155,7 @@ function getContributors(owner, repo) {
         pos += 1;
 
         pelem.appendChild(imgelem);
-        pelem.innerHTML += user;
+        pelem.appendChild(document.createTextNode(user));
 
         lielem.appendChild(pelem);
 
