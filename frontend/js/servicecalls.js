@@ -2,11 +2,11 @@ require('core-js/stable');
 
 const availableQuirks = {
   // DILE_VT
-  QUIRK_DILE_VT_CREATE_EX: '0x1',
-  QUIRK_DILE_VT_NO_FREEZE_CAPTURE: '0x2',
-  QUIRK_DILE_VT_DUMP_LOCATION_2: '0x4',
+  QUIRK_DILE_VT_CREATE_EX: 0x1,
+  QUIRK_DILE_VT_NO_FREEZE_CAPTURE: 0x2,
+  QUIRK_DILE_VT_DUMP_LOCATION_2: 0x4,
   // vtCapture
-  QUIRK_VTCAPTURE_FORCE_CAPTURE: '0x100',
+  QUIRK_VTCAPTURE_FORCE_CAPTURE: 0x100,
 };
 
 let isRoot = false;
@@ -58,17 +58,26 @@ function makeServiceRoot() {
       },
       onSuccess(result) {
         onHBExec(result);
+        if (result.returnValue !== true) {
+          // Allow the root check loop to retry elevation
+          rootingInProgress = false;
+          document.getElementById('txtInfoState').textContent = 'Elevation failed! Retrying..';
+          return;
+        }
 
         logIt('Elevation completed - killing service process..');
-        document.getElementById('txtInfoState').innerHTML = 'Killing service..';
+        document.getElementById('txtInfoState').textContent = 'Killing service..';
         killHyperion();
       },
-      onFailure: onHBExec,
+      onFailure(result) {
+        onHBExec(result);
+        // Allow the root check loop to retry elevation
+        rootingInProgress = false;
+        document.getElementById('txtInfoState').textContent = 'Elevation failed! Retrying..';
+      },
     },
   );
   /* eslint-enable no-undef */
-
-  document.getElementById('txtInfoState').innerHTML = 'Finished making root processing';
 }
 
 let checkRootStatusIntervalID = null;
@@ -134,13 +143,14 @@ function getStatus() {
       parameters: {},
       onSuccess(result) {
         if (result.returnValue === true) {
-          document.getElementById('txtServiceVersion').innerHTML = result.version;
-          document.getElementById('txtServiceStatus').innerHTML = result.isRunning ? 'Capturing' : 'Not capturing';
+          document.getElementById('txtServiceVersion').textContent = result.version;
+          document.getElementById('txtServiceStatus').textContent = result.isRunning ? 'Capturing' : 'Not capturing';
 
-          document.getElementById('txtInfoReceiver').innerHTML = result.connected ? 'Connected' : 'Disconnected';
-          document.getElementById('txtInfoVideo').innerHTML = result.videoRunning ? `Capturing with ${result.videoBackend}` : 'Not capturing';
-          document.getElementById('txtInfoUI').innerHTML = result.uiRunning ? `Capturing with ${result.uiBackend}` : 'Not capturing';
-          document.getElementById('txtInfoFPS').innerHTML = result.framerate.toFixed(2); /* Round to 2 decimal points */
+          document.getElementById('txtInfoReceiver').textContent = result.connected ? 'Connected' : 'Disconnected';
+          document.getElementById('txtInfoVideo').textContent = result.videoRunning ? `Capturing with ${result.videoBackend}` : 'Not capturing';
+          document.getElementById('txtInfoUI').textContent = result.uiRunning ? `Capturing with ${result.uiBackend}` : 'Not capturing';
+          /* Round to 2 decimal points */
+          document.getElementById('txtInfoFPS').textContent = typeof result.framerate === 'number' ? result.framerate.toFixed(2) : '-';
 
           document.getElementById('txtInfoState').innerHTML = 'Status info refreshed';
         } else {
@@ -173,20 +183,21 @@ function getSettings() {
           document.getElementById('checkSettingsLocalSocket').checked = result['unix-socket'];
           socketCheckChanged(document.getElementById('checkSettingsLocalSocket'));
 
-          if (result.address.includes('/')) {
-            switch (result.address) {
+          const address = result.address || '';
+          if (address.includes('/')) {
+            switch (address) {
               case '/tmp/hyperhdr-domain':
                 document.getElementById('selectSettingsSocket').value = 'hyperhdr';
                 break;
               default:
                 document.getElementById('selectSettingsSocket').value = 'manual';
-                document.getElementById('txtInputSettingsAddress').value = result.address;
+                document.getElementById('txtInputSettingsSocketPath').value = address;
             }
             document.getElementById('txtInputSettingsAddress').value = '127.0.0.1';
-            socketSelectChanged(document.getElementById('selectSettingsSocket'));
           } else {
-            document.getElementById('txtInputSettingsAddress').value = result.address || '127.0.0.1';
+            document.getElementById('txtInputSettingsAddress').value = address || '127.0.0.1';
           }
+          socketSelectChanged(document.getElementById('selectSettingsSocket'));
 
           document.getElementById('txtInputSettingsPort').value = result.port;
           document.getElementById('txtInputSettingsPriority').value = result.priority;
@@ -213,16 +224,16 @@ function getSettings() {
               document.getElementById('txtInputSettingsHeight').value = result.height;
               break;
           }
+          resolutionChanged(document.getElementById('selectSettingsResolution'));
 
           Object.keys(availableQuirks).forEach((quirk) => {
             logIt(`Processing: ${quirk}`);
             const quirkval = availableQuirks[quirk];
-            /* eslint-disable eqeqeq */
-            if ((result.quirks & quirkval) == quirkval) {
+            const enabled = (result.quirks & quirkval) === quirkval;
+            if (enabled) {
               logIt(`Quirk ${quirk} enabled!`);
-              document.getElementById(`checkSettings${quirk}`).checked = true;
             }
-            /* eslint-enable eqeqeq */
+            document.getElementById(`checkSettings${quirk}`).checked = enabled;
           });
 
           document.getElementById('checkSettingsVSync').checked = result.vsync;
@@ -271,7 +282,7 @@ function saveSettings(config) {
       },
       onFailure(result) {
         logIt(`Save settings for PicCap-Service failed! Code: ${result.errorCode}`);
-        document.getElementById('txtInfoState').innerHTML = 'Sace settings failed!';
+        document.getElementById('txtInfoState').innerHTML = 'Save settings failed!';
       },
     },
   );
@@ -287,6 +298,7 @@ window.serviceResetSettings = () => {
     novideo: false,
     nogui: false,
 
+    'unix-socket': false,
     address: '',
     port: 19400,
     priority: 150,
@@ -299,9 +311,11 @@ window.serviceResetSettings = () => {
 
     vsync: true,
     autostart: false,
+    nohdr: false,
+    nopowerstate: false,
     nv12: false,
   };
-  logIt(config);
+  logIt(`Config: ${JSON.stringify(config)}`);
 
   document.getElementById('txtInfoState').innerHTML = 'Sending default settings..';
   saveSettings(config);
@@ -391,7 +405,7 @@ window.serviceSaveSettings = () => {
     nohdr: document.getElementById('checkSettingsNoHDR').checked,
     nopowerstate: document.getElementById('checkSettingsNoPowerstate').checked,
     nv12: document.getElementById('checkSettingsNV12').checked,
-};
+  };
 
   logIt(`Config: ${JSON.stringify(config)}`);
 
@@ -412,7 +426,7 @@ window.reloadHyperionLog = () => {
       onSuccess(result) {
         onHBExec(result);
         const textareaHyperionLog = document.getElementById('textareaHyperionLog');
-        textareaHyperionLog.value += `${result.stdoutString}\r\n`;
+        textareaHyperionLog.value = `${result.stdoutString}\r\n`;
       },
       onFailure: onHBExec,
     },
@@ -479,7 +493,6 @@ window.serviceStart = () => {
   } catch (err) {
     document.getElementById('txtServiceStatus').innerHTML = `Failed: ${JSON.stringify(err)}`;
   }
-  document.getElementById('txtInfoState').innerHTML = 'Start command send';
 };
 
 window.serviceStop = () => {
@@ -501,7 +514,6 @@ window.serviceStop = () => {
   } catch (err) {
     document.getElementById('txtServiceStatus').innerHTML = `Failed: ${JSON.stringify(err)}`;
   }
-  document.getElementById('txtInfoState').innerHTML = 'Stop command send';
 };
 
 window.serviceReload = () => {
