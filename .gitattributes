@@ -1,0 +1,7 @@
+# Store and check out text files with LF everywhere. Shell scripts and service
+# files run on the TV and break with CRLF, and ESLint enforces LF for JS.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ipk binary

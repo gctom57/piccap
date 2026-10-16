@@ -13,7 +13,7 @@
     "build-backend": "bash ./scripts/build-backend.sh hyperion-webos gm_backend halgal_backend dile_vt_backend vtcapture_backend",
     "build-all": "npm run build-frontend && bash ./scripts/build-backend.sh",
     "package": "ares-package ./build/piccap-frontend ./build/hyperion-webos -o ./build",
-    "deploy": "ares-install org.webosbrew.piccap_${npm_package_version}_all.ipk",
+    "deploy": "ares-install ./build/org.webosbrew.piccap_${npm_package_version}_all.ipk",
     "launch": "ares-launch org.webosbrew.piccap"
   },
   "browserslist": [

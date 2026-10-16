@@ -3,6 +3,8 @@ const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
   entry: {
+    // Must be the first bundle index.html loads
+    polyfills: path.resolve(__dirname, './frontend/js/polyfills.js'),
     ui: path.resolve(__dirname, './frontend/js/ui.js'),
     servicecalls: path.resolve(__dirname, './frontend/js/servicecalls.js'),
     spatialnavigation: path.resolve(__dirname, './frontend/js/spatial-navigation.js'),
@@ -32,7 +34,15 @@ module.exports = {
   },
   plugins: [
     new CopyPlugin({
-      patterns: [{ context: 'frontend', from: '**', to: '.' }],
+      patterns: [{
+        context: 'frontend',
+        from: '**',
+        to: '.',
+        globOptions: {
+          // JS sources are bundled above; the dev helper library isn't used in the app
+          ignore: ['**/js/**', '**/webOSTV-dev.js'],
+        },
+      }],
     }),
   ],
 };
