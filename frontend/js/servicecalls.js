@@ -34,6 +34,7 @@ const MAX_ELEVATION_ATTEMPTS = 3;
 let isRoot = false;
 let elevationStartedAt = 0; // 0 = no elevation attempt running
 let elevationAttempts = 0;
+let statusFailures = 0;
 let settingsLoaded = false;
 
 function setSettingsButtonsEnabled(enabled) {
@@ -112,13 +113,18 @@ function onCheckRootStatus(result) {
     return;
   }
 
-  if (result.returnValue !== true) {
-    logIt(`Getting root-status from PicCap-Service failed! Will try again. Code: ${result.errorCode}`);
+  // A service that is not elevated yet may not answer at all (it can be
+  // denied on the bus until it is), so a failed call still leads to elevation
+  const statusFailed = result.returnValue !== true;
+  if (statusFailed) {
+    statusFailures += 1;
+    logIt(`Getting root-status from PicCap-Service failed! Code: ${result.errorCode}`);
     document.getElementById('txtInfoState').innerHTML = 'PicCap-Service status failed!';
-    return;
-  }
-
-  if (result.elevated) {
+    // Give a freshly launched service one round to come up first
+    if (statusFailures < 2) {
+      return;
+    }
+  } else if (result.elevated) {
     logIt('PicCap-Service returned rooted!');
     document.getElementById('txtInfoState').innerHTML = 'Running as root';
     isRoot = true;
@@ -137,6 +143,7 @@ function onCheckRootStatus(result) {
   if (elevationAttempts >= MAX_ELEVATION_ATTEMPTS) {
     logIt(`Service is still not elevated after ${elevationAttempts} attempts, giving up.`);
     document.getElementById('txtInfoState').textContent = 'Elevation failed! Is Homebrew Channel rooted? Restart PicCap to retry.';
+    document.getElementById('txtServiceStatus').textContent = 'Not running as root';
     clearInterval(checkRootStatusIntervalID);
     return;
   }
