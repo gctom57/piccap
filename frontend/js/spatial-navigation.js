@@ -2,6 +2,7 @@
 // https://raw.githubusercontent.com/WICG/spatial-navigation/183f0146b6741007e46fa64ab0950447defdf8af/polyfill/spatial-navigation-polyfill.js
 // License: MIT
 // Line 97-104: Added checkbox behavior
+// Removed `import 'core-js'`: polyfills.bundled.js (core-js/stable) loads first
 //
 /* Spatial Navigation Polyfill
  *
@@ -13,7 +14,6 @@
  *
  * Licensed under the MIT license (MIT)
  */
-import 'core-js';
 import './domrect-polyfill';
 
 (function () {
