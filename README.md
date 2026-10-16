@@ -1,5 +1,9 @@
 # PicCap - Hyperion Sender App | Ambilight for LG WebOS TVs 
 
+> [!WARNING]
+> **This is a personal fork for testing. It is not supported and builds from it may break your setup.**
+> Install the official PicCap from the [webOS Homebrew Channel](https://github.com/webosbrew/webos-homebrew-channel) or [TBSniller/piccap](https://github.com/TBSniller/piccap) instead.
+
   
 ## What's this?
 
