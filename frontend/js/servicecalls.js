@@ -512,6 +512,54 @@ window.reloadHyperionLog = () => {
   /* eslint-enable no-undef */
 };
 
+const LOG_EXPORT_PATH = '/tmp/piccap-frontend.log';
+// Base64 keeps the log text out of shell syntax; chunks keep each Luna
+// message small. Must stay a multiple of 4 so chunks decode on their own.
+const LOG_EXPORT_CHUNK = 12000;
+
+// Writes the in-app PicCap log to a file on the TV so it can be read over SSH
+window.exportPicCapLog = () => {
+  const text = document.getElementById('textareaConsoleLog').value;
+  const encoded = window.btoa(unescape(encodeURIComponent(text)));
+  const chunks = [];
+  for (let i = 0; i < encoded.length; i += LOG_EXPORT_CHUNK) {
+    chunks.push(encoded.substr(i, LOG_EXPORT_CHUNK));
+  }
+
+  document.getElementById('txtInfoState').textContent = 'Exporting PicCap log..';
+  const writeChunk = (index) => {
+    if (index >= chunks.length) {
+      logIt(`PicCap log exported to ${LOG_EXPORT_PATH}`);
+      document.getElementById('txtInfoState').textContent = `PicCap log saved to ${LOG_EXPORT_PATH}`;
+      return;
+    }
+    /* eslint-disable no-undef */
+    webOS.service.request(
+      'luna://org.webosbrew.hbchannel.service',
+      {
+        method: 'exec',
+        parameters: {
+          command: `echo ${chunks[index]} | base64 -d ${index === 0 ? '>' : '>>'} ${LOG_EXPORT_PATH}`,
+        },
+        onSuccess(result) {
+          if (result.returnValue !== true) {
+            onHBExec(result);
+            document.getElementById('txtInfoState').textContent = 'Exporting PicCap log failed!';
+            return;
+          }
+          writeChunk(index + 1);
+        },
+        onFailure(result) {
+          onHBExec(result);
+          document.getElementById('txtInfoState').textContent = 'Exporting PicCap log failed!';
+        },
+      },
+    );
+    /* eslint-enable no-undef */
+  };
+  writeChunk(0);
+};
+
 // Using this function to setup logging for now.
 // Future start/stop of currently not implemented hyperion-webos log method.
 window.startStopLogging = () => {
