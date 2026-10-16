@@ -1,10 +1,6 @@
-import packageJSON from '../../package.json';
-
-function logIt(message) {
-  const textareaConsoleLog = document.getElementById('textareaConsoleLog');
-  console.log(message);
-  textareaConsoleLog.value += `${message}\n`;
-}
+// appinfo.json is what gets installed on the TV, so it is the version to show
+import appInfo from '../appinfo.json';
+import logIt from './log';
 
 function setButtonActive(btnId, active) {
   const btn = document.getElementById(btnId);
@@ -116,14 +112,22 @@ function getJSON(url, callback) {
   xhr.open('GET', url, true);
   xhr.responseType = 'json';
 
+  xhr.timeout = 10000;
   xhr.onload = function () {
     const { status } = xhr;
 
-    if (status === 200) {
+    if (status === 200 && Array.isArray(xhr.response)) {
       callback(null, xhr.response);
     } else {
       callback(status);
     }
+  };
+  // Offline TVs and GitHub rate limits are expected; the About page just stays empty
+  xhr.onerror = function () {
+    callback('network error');
+  };
+  xhr.ontimeout = function () {
+    callback('timeout');
   };
 
   xhr.send();
@@ -184,6 +188,6 @@ window.addEventListener('load', () => {
   loadLightMode();
   /* eslint-enable no-undef */
 
-  const piccapVersion = packageJSON.version;
+  const piccapVersion = appInfo.version;
   document.getElementById('txtPicCapVersion').innerHTML = `v${piccapVersion}`;
 });

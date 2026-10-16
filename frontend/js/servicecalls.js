@@ -1,4 +1,4 @@
-require('core-js/stable');
+import logIt from './log';
 
 const availableQuirks = {
   // DILE_VT
@@ -9,13 +9,37 @@ const availableQuirks = {
   QUIRK_VTCAPTURE_FORCE_CAPTURE: 0x100,
 };
 
-let isRoot = false;
-let rootingInProgress = false;
+const resolutionPresets = {
+  '320x180': [320, 180],
+  '256x144': [256, 144],
+  '192x108': [192, 108],
+  '128x72': [128, 72],
+};
 
-function logIt(message) {
-  const textareaConsoleLog = document.getElementById('textareaConsoleLog');
-  console.log(message);
-  textareaConsoleLog.value += `${message}\n`;
+// Same limits the service enforces (hyperion-webos src/settings.c)
+const limits = {
+  port: [1, 65535],
+  priority: [0, 255],
+  fps: [0, 240],
+  width: [16, 3840],
+  height: [16, 2160],
+};
+const UNIX_PATH_MAX = 108;
+
+// Rooting: how long one elevation attempt may take before retrying, and how
+// often to retry before giving up
+const ELEVATION_TIMEOUT_MS = 30000;
+const MAX_ELEVATION_ATTEMPTS = 3;
+
+let isRoot = false;
+let elevationStartedAt = 0; // 0 = no elevation attempt running
+let elevationAttempts = 0;
+let settingsLoaded = false;
+
+function setSettingsButtonsEnabled(enabled) {
+  ['btnSettingsSave', 'btnSettingsReset'].forEach((id) => {
+    document.getElementById(id).disabled = !enabled;
+  });
 }
 
 function onHBExec(result) {
@@ -28,14 +52,16 @@ function onHBExec(result) {
 
 function killHyperion() {
   document.getElementById('txtInfoState').innerHTML = 'Killing service..';
-  logIt('Calling HBChannel exec to kill hyperion-webos');
+  logIt('Calling HBChannel exec to stop hyperion-webos');
   /* eslint-disable no-undef */
   webOS.service.request(
     'luna://org.webosbrew.hbchannel.service',
     {
       method: 'exec',
       parameters: {
-        command: 'kill -9 $(pidof hyperion-webos)',
+        // SIGTERM lets the service release the capture drivers; only force
+        // kill if it is still alive after 5 seconds
+        command: 'pid=$(pidof hyperion-webos) || exit 0; kill $pid; for i in 1 2 3 4 5; do sleep 1; kill -0 $pid 2>/dev/null || exit 0; done; kill -9 $pid',
       },
       onSuccess: onHBExec,
       onFailure: onHBExec,
@@ -60,7 +86,7 @@ function makeServiceRoot() {
         onHBExec(result);
         if (result.returnValue !== true) {
           // Allow the root check loop to retry elevation
-          rootingInProgress = false;
+          elevationStartedAt = 0;
           document.getElementById('txtInfoState').textContent = 'Elevation failed! Retrying..';
           return;
         }
@@ -72,7 +98,7 @@ function makeServiceRoot() {
       onFailure(result) {
         onHBExec(result);
         // Allow the root check loop to retry elevation
-        rootingInProgress = false;
+        elevationStartedAt = 0;
         document.getElementById('txtInfoState').textContent = 'Elevation failed! Retrying..';
       },
     },
@@ -82,33 +108,50 @@ function makeServiceRoot() {
 
 let checkRootStatusIntervalID = null;
 function onCheckRootStatus(result) {
-  if (result.returnValue === true) {
-    if (result.elevated) {
-      logIt('PicCap-Service returned rooted!');
-      document.getElementById('txtInfoState').innerHTML = 'Running as root';
-      isRoot = true;
-      clearInterval(checkRootStatusIntervalID);
-      rootingInProgress = false;
-    } else {
-      if (rootingInProgress === false) {
-        logIt('Rooting not in progress yet.');
-        makeServiceRoot();
-        rootingInProgress = true;
-      }
-      logIt('PicCap-Service returned not rooted yet! Will check again soon.');
-      document.getElementById('txtInfoState').innerHTML = 'Not running as root. Service elevation in progress..';
-    }
-  } else {
+  if (isRoot) {
+    return;
+  }
+
+  if (result.returnValue !== true) {
     logIt(`Getting root-status from PicCap-Service failed! Will try again. Code: ${result.errorCode}`);
     document.getElementById('txtInfoState').innerHTML = 'PicCap-Service status failed!';
+    return;
   }
+
+  if (result.elevated) {
+    logIt('PicCap-Service returned rooted!');
+    document.getElementById('txtInfoState').innerHTML = 'Running as root';
+    isRoot = true;
+    clearInterval(checkRootStatusIntervalID);
+    elevationStartedAt = 0;
+    return;
+  }
+
+  if (elevationStartedAt !== 0 && Date.now() - elevationStartedAt < ELEVATION_TIMEOUT_MS) {
+    logIt('PicCap-Service returned not rooted yet! Will check again soon.');
+    document.getElementById('txtInfoState').innerHTML = 'Not running as root. Service elevation in progress..';
+    return;
+  }
+
+  // No attempt running, or the last one never took effect
+  if (elevationAttempts >= MAX_ELEVATION_ATTEMPTS) {
+    logIt(`Service is still not elevated after ${elevationAttempts} attempts, giving up.`);
+    document.getElementById('txtInfoState').textContent = 'Elevation failed! Is Homebrew Channel rooted? Restart PicCap to retry.';
+    clearInterval(checkRootStatusIntervalID);
+    return;
+  }
+
+  elevationAttempts += 1;
+  elevationStartedAt = Date.now();
+  logIt(`Starting elevation attempt ${elevationAttempts}/${MAX_ELEVATION_ATTEMPTS}.`);
+  document.getElementById('txtInfoState').innerHTML = 'Not running as root. Service elevation in progress..';
+  makeServiceRoot();
 }
 
 function checkRoot() {
   document.getElementById('txtServiceStatus').innerHTML = 'Processing root check';
   logIt('Starting loop for PicCap-Service to get root-status');
 
-  let firstInterval = true;
   checkRootStatusIntervalID = window.setInterval(() => {
     logIt('Calling PicCap-Service to get root-status');
     document.getElementById('txtInfoState').innerHTML = 'Checking root status';
@@ -123,13 +166,6 @@ function checkRoot() {
       },
     );
     /* eslint-enable no-undef */
-
-    if (rootingInProgress === false && isRoot === false && firstInterval === false) {
-      logIt('Not rooted and rooting not in progress yet.');
-      makeServiceRoot();
-      rootingInProgress = true;
-    }
-    firstInterval = false;
   }, 3000);
 }
 
@@ -204,26 +240,15 @@ function getSettings() {
 
           document.getElementById('txtInputSettingsFPS').value = result.fps;
 
-          // Process Height/Width for easier selection
-          switch (result.width * result.height) {
-            case 57600:
-              document.getElementById('selectSettingsResolution').value = '320x180';
-              break;
-            case 36864:
-              document.getElementById('selectSettingsResolution').value = '256x144';
-              break;
-            case 20736:
-              document.getElementById('selectSettingsResolution').value = '192x108';
-              break;
-            case 9984:
-              document.getElementById('selectSettingsResolution').value = '128x78';
-              break;
-            default:
-              document.getElementById('selectSettingsResolution').value = 'manual';
-              document.getElementById('txtInputSettingsWidth').value = result.width;
-              document.getElementById('txtInputSettingsHeight').value = result.height;
-              break;
+          // Match presets on the exact size: different sizes can share an area
+          const resolution = `${result.width}x${result.height}`;
+          if (Object.prototype.hasOwnProperty.call(resolutionPresets, resolution)) {
+            document.getElementById('selectSettingsResolution').value = resolution;
+          } else {
+            document.getElementById('selectSettingsResolution').value = 'manual';
           }
+          document.getElementById('txtInputSettingsWidth').value = result.width;
+          document.getElementById('txtInputSettingsHeight').value = result.height;
           resolutionChanged(document.getElementById('selectSettingsResolution'));
 
           Object.keys(availableQuirks).forEach((quirk) => {
@@ -242,6 +267,8 @@ function getSettings() {
           document.getElementById('checkSettingsNoPowerstate').checked = result.nopowerstate;
           document.getElementById('checkSettingsNV12').checked = result.nv12;
 
+          settingsLoaded = true;
+          setSettingsButtonsEnabled(true);
           logIt('Loading settings done!');
           document.getElementById('txtInfoState').innerHTML = 'Settings loaded';
         } else {
@@ -274,11 +301,12 @@ function saveSettings(config) {
         if (result.returnValue === true) {
           logIt('Saving settings success!');
           document.getElementById('txtInfoState').innerHTML = 'Save settings success!';
-          getSettings();
         } else {
-          logIt('Save settings for PicCap-Service failed! Return value false!');
+          logIt(`Save settings for PicCap-Service failed! ${result.errorText || 'Settings were rejected.'}`);
           document.getElementById('txtInfoState').innerHTML = 'Save settings failed!';
         }
+        // Show what the service actually has now
+        getSettings();
       },
       onFailure(result) {
         logIt(`Save settings for PicCap-Service failed! Code: ${result.errorCode}`);
@@ -289,7 +317,42 @@ function saveSettings(config) {
   /* eslint-enable no-undef */
 }
 
+function isIPv4(address) {
+  const parts = address.split('.');
+  return parts.length === 4 && parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) <= 255);
+}
+
+// Returns an error message, or null when the service will accept the config
+function validateConfig(config) {
+  if (config['unix-socket']) {
+    if (typeof config.address !== 'string' || config.address[0] !== '/' || config.address.length >= UNIX_PATH_MAX) {
+      return `Socket path must be absolute and shorter than ${UNIX_PATH_MAX} characters`;
+    }
+  } else if (typeof config.address !== 'string' || !isIPv4(config.address)) {
+    return 'Address must be an IPv4 address like 192.168.1.10';
+  }
+
+  const invalid = Object.keys(limits).find((key) => {
+    const [min, max] = limits[key];
+    return !Number.isInteger(config[key]) || config[key] < min || config[key] > max;
+  });
+  if (invalid) {
+    return `${invalid} must be a whole number from ${limits[invalid][0]} to ${limits[invalid][1]}`;
+  }
+
+  return null;
+}
+
+function readInt(id) {
+  const value = document.getElementById(id).value.trim();
+  return /^\d+$/.test(value) ? Number(value) : NaN;
+}
+
 window.serviceResetSettings = () => {
+  if (!settingsLoaded) {
+    logIt('Settings not loaded yet, not resetting.');
+    return;
+  }
   document.getElementById('txtInfoState').innerHTML = 'Loading default settings..';
   const config = {
     backend: 'auto',
@@ -322,6 +385,12 @@ window.serviceResetSettings = () => {
 };
 
 window.serviceSaveSettings = () => {
+  // Saving an unloaded form would overwrite the stored config with blanks
+  if (!settingsLoaded) {
+    logIt('Settings not loaded yet, not saving.');
+    document.getElementById('txtInfoState').textContent = 'Settings not loaded yet!';
+    return;
+  }
   document.getElementById('txtInfoState').innerHTML = 'Collecting settings..';
 
   let quirkcalc = 0;
@@ -337,31 +406,12 @@ window.serviceSaveSettings = () => {
 
   let width;
   let height;
-  switch (document.getElementById('selectSettingsResolution').value) {
-    case '320x180':
-      width = 320;
-      height = 180;
-      break;
-    case '256x144':
-      width = 256;
-      height = 144;
-      break;
-    case '192x108':
-      width = 192;
-      height = 108;
-      break;
-    case '128x78':
-      width = 128;
-      height = 78;
-      break;
-    case 'manual':
-      width = parseInt(document.getElementById('txtInputSettingsWidth').value, 10);
-      height = parseInt(document.getElementById('txtInputSettingsHeight').value, 10);
-      break;
-    default:
-      width = 320;
-      height = 180;
-      break;
+  const resolution = document.getElementById('selectSettingsResolution').value;
+  if (Object.prototype.hasOwnProperty.call(resolutionPresets, resolution)) {
+    [width, height] = resolutionPresets[resolution];
+  } else {
+    width = readInt('txtInputSettingsWidth');
+    height = readInt('txtInputSettingsHeight');
   }
 
   let address;
@@ -391,13 +441,13 @@ window.serviceSaveSettings = () => {
 
     'unix-socket': document.getElementById('checkSettingsLocalSocket').checked,
     address,
-    port: parseInt(document.getElementById('txtInputSettingsPort').value, 10) || undefined,
-    priority: parseInt(document.getElementById('txtInputSettingsPriority').value, 10) || undefined,
+    port: readInt('txtInputSettingsPort'),
+    priority: readInt('txtInputSettingsPriority'),
 
-    fps: parseInt(document.getElementById('txtInputSettingsFPS').value, 10) || 0,
+    fps: readInt('txtInputSettingsFPS'),
 
-    width: width || undefined,
-    height: height || undefined,
+    width,
+    height,
     quirks: quirkcalc,
 
     vsync: document.getElementById('checkSettingsVSync').checked,
@@ -408,6 +458,13 @@ window.serviceSaveSettings = () => {
   };
 
   logIt(`Config: ${JSON.stringify(config)}`);
+
+  const error = validateConfig(config);
+  if (error) {
+    logIt(`Not saving: ${error}`);
+    document.getElementById('txtInfoState').textContent = `Invalid settings: ${error}`;
+    return;
+  }
 
   document.getElementById('txtInfoState').innerHTML = 'Sending settings..';
   saveSettings(config);
@@ -539,6 +596,7 @@ window.tvReboot = () => {
 
 window.addEventListener('load', () => {
   logIt('Startup of PicCap...');
+  setSettingsButtonsEnabled(false);
   checkRoot();
 
   logIt('Starting load settings loop...');
@@ -552,6 +610,9 @@ window.addEventListener('load', () => {
 
   logIt('Starting status loop...');
   setInterval(() => {
-    getStatus();
+    // No point polling the service while the app is in the background
+    if (!document.hidden) {
+      getStatus();
+    }
   }, 4000);
 });
