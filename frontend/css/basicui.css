@@ -206,6 +206,17 @@ nav{
   margin-left: 10px;
   margin-right: 10px;
 }
+/* A group only wraps fields that are shown/hidden together; it adds no spacing */
+.settingItems ul li.group{
+  text-align: inherit;
+  margin-left: 0;
+  margin-right: 0;
+}
+.settingItems .field{
+  text-align: left;
+  margin-left: 10px;
+  margin-right: 10px;
+}
 
 .settingItems input[type="text"]{
   border-style: none;

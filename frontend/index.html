@@ -55,31 +55,31 @@
                <label for="checkSettingsLocalSocket">Local socket<input type="checkbox" id="checkSettingsLocalSocket" onchange="socketCheckChanged(this)"/></label>
               </div>
             </li>
-            <div class="settingsocket blueMode" id="settingsocket">
-              <li>
+            <li class="group settingsocket blueMode" id="settingsocket">
+              <div class="field">
                 <p>Socket</p>
                 <select name="selectSettingsSocket" id="selectSettingsSocket" onchange="socketSelectChanged(this)">
                   <option value="hyperhdr">/tmp/hyperhdr-domain</option>
                   <option value="manual">manual</option>
                 </select>
-              </li>
+              </div>
               <div class="manualsocket blueMode" id="manualsocket">
-                <li>
+                <div class="field">
                   <p>Socket path</p>
                   <input type="text" id="txtInputSettingsSocketPath"/>
-                </li>
+                </div>
               </div>
-            </div>
-            <div class="settingaddressport blueMode" id="settingaddressport">
-              <li>
+            </li>
+            <li class="group settingaddressport blueMode" id="settingaddressport">
+              <div class="field">
                 <p>Address</p>
                 <input type="text" id="txtInputSettingsAddress"/>
-              </li>
-              <li>
+              </div>
+              <div class="field">
                 <p>Port</p>
                 <input type="text" id="txtInputSettingsPort"/>
-              </li>
-            </div>
+              </div>
+            </li>
             <li>
               <p>Hyperion priority</p>
               <input type="text" id="txtInputSettingsPriority"/>
@@ -96,16 +96,16 @@
                   <option value="manual">Manual</option>
               </select>
             </li>
-            <div class="manualres blueMode" id="manualres">
-              <li>
+            <li class="group manualres blueMode" id="manualres">
+              <div class="field">
                 <p>Width</p>
                 <input type="text" id="txtInputSettingsWidth"/>
-              </li><br/>
-              <li>
+              </div><br/>
+              <div class="field">
                 <p>Height</p>
                 <input type="text" id="txtInputSettingsHeight"/>
-              </li>
-            </div>
+              </div>
+            </li>
             <li>
               <p>Maximal FPS</p>
               <input type="text" id="txtInputSettingsFPS"/>
