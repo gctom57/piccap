@@ -216,7 +216,14 @@ function getStatus() {
           document.getElementById('txtServiceStatus').textContent = result.isRunning ? 'Capturing' : 'Not capturing';
 
           document.getElementById('txtInfoReceiver').textContent = result.connected ? 'Connected' : 'Disconnected';
-          document.getElementById('txtInfoVideo').textContent = result.videoRunning ? backendName(result.videoBackend) : 'Not capturing';
+          // videoError (newer services) says why video capture is missing
+          let videoText = 'Not capturing';
+          if (result.videoRunning) {
+            videoText = backendName(result.videoBackend);
+          } else if (result.videoError) {
+            videoText = result.videoError;
+          }
+          document.getElementById('txtInfoVideo').textContent = videoText;
           document.getElementById('txtInfoUI').textContent = result.uiRunning ? backendName(result.uiBackend) : 'Not capturing';
           document.getElementById('txtInfoFPS').textContent = result.isRunning && typeof result.framerate === 'number' ? result.framerate.toFixed(1) : '-';
 
@@ -226,7 +233,13 @@ function getStatus() {
           }
           setState('serviceHero', heroState);
           setState('tileReceiver', result.connected ? 'ok' : 'off');
-          setState('tileVideo', result.videoRunning ? 'ok' : 'off');
+          let videoState = 'off';
+          if (result.videoRunning) {
+            videoState = 'ok';
+          } else if (result.isRunning && result.videoError) {
+            videoState = 'warn';
+          }
+          setState('tileVideo', videoState);
           setState('tileUI', result.uiRunning ? 'ok' : 'off');
 
           document.getElementById('txtInfoState').innerHTML = 'Status info refreshed';
