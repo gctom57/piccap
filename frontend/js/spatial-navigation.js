@@ -675,7 +675,8 @@ import './domrect-polyfill';
      * @returns {string} The value of the css custom property
      */
   function readCssVar(element, varName) {
-    return element.style.getPropertyValue(`--${varName}`).trim();
+    // Chrome 38 (webOS 3.x) has no CSS custom properties and returns null here
+    return (element.style.getPropertyValue(`--${varName}`) || '').trim();
   }
 
   /**
