@@ -514,11 +514,44 @@ window.reloadHyperionLog = () => {
 };
 
 const LOG_EXPORT_PATH = '/tmp/piccap-frontend.log';
+// App log plus the service's recent lines, for sending in one go
+const LOG_BUNDLE_PATH = '/tmp/piccap-logs.txt';
+const LOG_BUNDLE_SERVICE_LINES = 500;
 // Base64 keeps the log text out of shell syntax; chunks keep each Luna
 // message small. Must stay a multiple of 4 so chunks decode on their own.
 const LOG_EXPORT_CHUNK = 12000;
 
-// Writes the in-app PicCap log to a file on the TV so it can be read over SSH
+// Appends the service log to a copy of the exported app log. Fixed strings
+// only: nothing from the logs reaches the shell.
+function bundleLogs() {
+  /* eslint-disable no-undef */
+  webOS.service.request(
+    'luna://org.webosbrew.hbchannel.service',
+    {
+      method: 'exec',
+      parameters: {
+        command: `{ cat ${LOG_EXPORT_PATH}; echo; echo '===== hyperion-webos: last ${LOG_BUNDLE_SERVICE_LINES} lines of /var/log/messages ====='; grep hyperion-webos /var/log/messages | tail -n ${LOG_BUNDLE_SERVICE_LINES}; } > ${LOG_BUNDLE_PATH}`,
+      },
+      onSuccess(result) {
+        if (result.returnValue !== true) {
+          onHBExec(result);
+          document.getElementById('txtInfoState').textContent = `PicCap log saved to ${LOG_EXPORT_PATH} (service log not added)`;
+          return;
+        }
+        logIt(`Logs exported to ${LOG_BUNDLE_PATH}`);
+        document.getElementById('txtInfoState').textContent = `Logs saved to ${LOG_BUNDLE_PATH}`;
+      },
+      onFailure(result) {
+        onHBExec(result);
+        document.getElementById('txtInfoState').textContent = `PicCap log saved to ${LOG_EXPORT_PATH} (service log not added)`;
+      },
+    },
+  );
+  /* eslint-enable no-undef */
+}
+
+// Writes the in-app PicCap log to a file on the TV, then bundles it with the
+// service log, so both can be read over SSH with one cat
 window.exportPicCapLog = () => {
   const text = document.getElementById('textareaConsoleLog').value;
   const encoded = window.btoa(unescape(encodeURIComponent(text)));
@@ -531,7 +564,7 @@ window.exportPicCapLog = () => {
   const writeChunk = (index) => {
     if (index >= chunks.length) {
       logIt(`PicCap log exported to ${LOG_EXPORT_PATH}`);
-      document.getElementById('txtInfoState').textContent = `PicCap log saved to ${LOG_EXPORT_PATH}`;
+      bundleLogs();
       return;
     }
     /* eslint-disable no-undef */

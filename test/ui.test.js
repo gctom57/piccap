@@ -171,13 +171,17 @@ ${'x'.repeat(30000)}
 end`;
   const expected = ta.value;
   w.exportPicCapLog();
-  const ex = calls.filter((c) => c.method === 'exec' && /piccap-frontend\.log/.test(c.parameters.command));
+  const ex = calls.filter((c) => c.method === 'exec' && /^echo .* \/tmp\/piccap-frontend\.log$/.test(c.parameters.command));
   check(ex.length === 4, `export split into chunks (got ${ex.length})`);
   check(ex.every((c) => /^echo [A-Za-z0-9+/=]+ \| base64 -d >>? \/tmp\/piccap-frontend\.log$/.test(c.parameters.command)), 'export commands contain only base64');
   check(/ > /.test(ex[0].parameters.command) && ex.slice(1).every((c) => / >> /.test(c.parameters.command)), 'first chunk truncates, rest append');
   const decoded = Buffer.concat(ex.map((c) => Buffer.from(c.parameters.command.split(' ')[1], 'base64'))).toString('utf8');
   check(decoded === expected, 'exported file matches the in-app log exactly');
-  check(/saved to/.test(w.document.getElementById('txtInfoState').textContent), 'user told where the log is');
+  const bundle = calls.filter((c) => c.method === 'exec' && /piccap-logs\.txt/.test(c.parameters.command));
+  check(bundle.length === 1 && /cat \/tmp\/piccap-frontend\.log/.test(bundle[0].parameters.command)
+    && /grep hyperion-webos \/var\/log\/messages \| tail -n 500/.test(bundle[0].parameters.command), 'app and service log bundled after the app log');
+  check(calls.indexOf(bundle[0]) > calls.indexOf(ex[ex.length - 1]), 'bundle written after the last app log chunk');
+  check(/Logs saved to \/tmp\/piccap-logs\.txt/.test(w.document.getElementById('txtInfoState').textContent), 'user told where the logs are');
 }
 
 console.log(fails ? `TESTS_FAILED ${fails}` : 'ALL_PASS');
