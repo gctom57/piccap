@@ -1,0 +1,91 @@
+#!/bin/sh
+# Homebrew Channel boot hook: keeps rotated system logs from filling RAM.
+#
+# /var/log lives in RAM (ramfs, no size limit) on webOS. PmLogDaemon rotates
+# /var/log/messages into files named messages.XXXXXX (mkstemp). On some TVs
+# nothing deletes them afterwards, so they pile up at about 2 MB a rotation
+# (seen on a webOS 3.5 C7: ~100 MB after two hours). Every few minutes this
+# deletes all but the newest few of those files. It touches nothing else:
+# not /var/log/messages itself, not the numbered messages.N(.gz) archives.
+#
+# Install: copy to /var/lib/webosbrew/init.d/90-log-cleanup and chmod +x.
+# BusyBox run-parts skips names with a dot, so keep the name as it is.
+# Uninstall: delete that file and reboot (or kill the pid in $PIDFILE).
+
+LOGDIR=${LOGDIR:-/var/log}
+KEEP=${KEEP:-2}
+INTERVAL=${INTERVAL:-300}
+PIDFILE=/tmp/log-cleanup.pid
+OWNLOG=/tmp/log-cleanup.log
+
+export PATH="/bin:/sbin:/usr/bin:/usr/sbin:$PATH"
+
+log() {
+    [ -f "$OWNLOG" ] && [ "$(wc -c < "$OWNLOG")" -gt 32768 ] && mv -f "$OWNLOG" "$OWNLOG.old"
+    echo "$(date '+%F %T') $*" >> "$OWNLOG"
+}
+
+# Rotated files PmLogDaemon left behind, newest first. Only messages.<suffix>
+# where the suffix is not purely numeric and not .gz.
+rotated_files() {
+    # BusyBox find can't sort by mtime; log names are plain, so ls is fine
+    # shellcheck disable=SC2012
+    ls -t "$LOGDIR" 2>/dev/null | while read -r name; do
+        case "$name" in
+            messages.*.gz) ;;
+            messages.*)
+                suffix=${name#messages.}
+                case "$suffix" in
+                    ''|*[!0-9]*) [ -n "$suffix" ] && echo "$name" ;;
+                esac
+                ;;
+        esac
+    done
+}
+
+cleanup_once() {
+    count=0
+    kb=0
+    for name in $(rotated_files | tail -n +$((KEEP + 1))); do
+        path="$LOGDIR/$name"
+        [ -f "$path" ] || continue
+        size=$(du -k "$path" 2>/dev/null | cut -f1)
+        rm -f "$path" && {
+            count=$((count + 1))
+            kb=$((kb + ${size:-0}))
+        }
+    done
+    [ "$count" -gt 0 ] && log "removed $count rotated log file(s), ${kb} KB"
+}
+
+run_loop() {
+    echo $$ > "$PIDFILE"
+    log "started (keep $KEEP, every ${INTERVAL}s)"
+    sleeper=
+    trap 'log "stopped"; [ -n "$sleeper" ] && kill "$sleeper" 2>/dev/null; rm -f "$PIDFILE"; exit 0' TERM INT
+    while :; do
+        cleanup_once
+        # Sleep in the background so TERM is handled at once, not after it
+        sleep "$INTERVAL" &
+        sleeper=$!
+        wait "$sleeper"
+    done
+}
+
+case "$1" in
+    once)
+        cleanup_once
+        ;;
+    loop)
+        run_loop
+        ;;
+    *)
+        # Boot hook entry point: start one background loop and return at once,
+        # so run-parts (and boot) never waits on us.
+        if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+            exit 0
+        fi
+        "$0" loop < /dev/null > /dev/null 2>&1 &
+        ;;
+esac
+exit 0
