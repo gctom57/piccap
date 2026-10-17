@@ -59,9 +59,10 @@ function killHyperion() {
     {
       method: 'exec',
       parameters: {
-        // SIGTERM lets the service release the capture drivers; only force
-        // kill if it is still alive after 5 seconds
-        command: 'pid=$(pidof hyperion-webos) || exit 0; kill $pid; for i in 1 2 3 4 5; do sleep 1; kill -0 $pid 2>/dev/null || exit 0; done; kill -9 $pid',
+        // SIGTERM lets the service stop capture and release the drivers. Only
+        // force kill as a last resort: a process killed while capturing
+        // breaks DILE_VT capture until the TV reboots (webOS 3.5)
+        command: 'pid=$(pidof hyperion-webos) || exit 0; kill $pid; for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do sleep 1; kill -0 $pid 2>/dev/null || exit 0; done; kill -9 $pid',
       },
       onSuccess: onHBExec,
       onFailure: onHBExec,
