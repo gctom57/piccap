@@ -31,6 +31,16 @@ const UNIX_PATH_MAX = 108;
 const ELEVATION_TIMEOUT_MS = 30000;
 const MAX_ELEVATION_ATTEMPTS = 3;
 
+// Drives the state colours of the status page (dots, ambient edge)
+function setState(id, state) {
+  document.getElementById(id).setAttribute('data-state', state);
+}
+
+// libdile_vt_backend.so -> dile_vt
+function backendName(file) {
+  return String(file || '').replace(/^lib/, '').replace(/_backend\.so$/, '');
+}
+
 let isRoot = false;
 let elevationStartedAt = 0; // 0 = no elevation attempt running
 let elevationAttempts = 0;
@@ -125,6 +135,7 @@ function maybeElevate() {
     logIt(`Service is still not elevated after ${elevationAttempts} attempts, giving up.`);
     document.getElementById('txtInfoState').textContent = 'Elevation failed! Is Homebrew Channel rooted? Restart PicCap to retry.';
     document.getElementById('txtServiceStatus').textContent = 'Not running as root';
+    setState('serviceHero', 'error');
     clearInterval(checkRootStatusIntervalID);
     return;
   }
@@ -205,10 +216,31 @@ function getStatus() {
           document.getElementById('txtServiceStatus').textContent = result.isRunning ? 'Capturing' : 'Not capturing';
 
           document.getElementById('txtInfoReceiver').textContent = result.connected ? 'Connected' : 'Disconnected';
-          document.getElementById('txtInfoVideo').textContent = result.videoRunning ? `Capturing with ${result.videoBackend}` : 'Not capturing';
-          document.getElementById('txtInfoUI').textContent = result.uiRunning ? `Capturing with ${result.uiBackend}` : 'Not capturing';
-          /* Round to 2 decimal points */
-          document.getElementById('txtInfoFPS').textContent = typeof result.framerate === 'number' ? result.framerate.toFixed(2) : '-';
+          // videoError (newer services) says why video capture is missing
+          let videoText = 'Not capturing';
+          if (result.videoRunning) {
+            videoText = backendName(result.videoBackend);
+          } else if (result.videoError) {
+            videoText = result.videoError;
+          }
+          document.getElementById('txtInfoVideo').textContent = videoText;
+          document.getElementById('txtInfoUI').textContent = result.uiRunning ? backendName(result.uiBackend) : 'Not capturing';
+          document.getElementById('txtInfoFPS').textContent = result.isRunning && typeof result.framerate === 'number' ? result.framerate.toFixed(1) : '-';
+
+          let heroState = 'stopped';
+          if (result.isRunning) {
+            heroState = result.connected ? 'running' : 'waiting';
+          }
+          setState('serviceHero', heroState);
+          setState('tileReceiver', result.connected ? 'ok' : 'off');
+          let videoState = 'off';
+          if (result.videoRunning) {
+            videoState = 'ok';
+          } else if (result.isRunning && result.videoError) {
+            videoState = 'warn';
+          }
+          setState('tileVideo', videoState);
+          setState('tileUI', result.uiRunning ? 'ok' : 'off');
 
           document.getElementById('txtInfoState').innerHTML = 'Status info refreshed';
         } else {

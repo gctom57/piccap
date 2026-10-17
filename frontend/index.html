@@ -9,293 +9,322 @@
     <script type="text/javascript" src="./ui.bundled.js"></script>
     <script type="text/javascript" src="./servicecalls.bundled.js"></script>
     <script type="text/javascript" src="./spatialnavigation.bundled.js"></script>
-    <link rel="stylesheet" href="./css/basicui.css" media="screen">
-    <link rel="stylesheet" href="./css/blueui.css" media="screen">
-    <link rel="stylesheet" href="./css/darkui.css" media="screen">
-    <link rel="stylesheet" href="./css/blackui.css" media="screen">
-   </head>
-  <body>
-    <nav>
-      <div class="menu blueMode" id="menu">
-        <div class="logo blueMode">
-          <p>PicCap - Hyperion Sender App</p><p id="txtPicCapVersion">loading...</p>
-        </div>
-        <ul>
-          <li><button onclick="switchView('service')" id="btnNavService">Service</button></li>
-          <li><button onclick="switchView('settings')" id="btnNavSettings">Settings</button></li>
-          <li><button onclick="switchView('logs')" id="btnNavLogs">Logs</button></li>
-          <li><button onclick="switchView('about')" id="btnNavAbout">About</button></li>
-        </ul>
-      </div>
-    </nav>
-    <div class="background blueMode"></div>
-    <div class="main blueMode">
-      <div id="service" class="service blueMode">
-        <div class="title blueMode"><p>hyperion-webos</p><p id="txtServiceVersion">loading..</p>
-        </div>
-        <div class="sub_title blueMode" id="txtServiceStatus">Loading status..</div>
-        <div class="btns blueMode">
-          <button onclick="serviceStart()" id="btnServiceStart">Start</button>
-          <button onclick="serviceStop()" id="btnServiceStop">Stop</button>
-        </div>
-        <div class="btns blueMode">
-          <button onclick="serviceReload()" id="btnServiceReload">Reload</button>
+    <link rel="stylesheet" href="./css/app.css" media="screen">
+  </head>
+  <body class="theme-blue">
+    <aside class="sidebar">
+      <div class="brand">
+        <img class="brand-logo" src="assets/logo_small.png" alt="">
+        <div>
+          <div class="brand-name">PicCap</div>
+          <div class="brand-sub">Hyperion sender <span id="txtPicCapVersion">loading...</span></div>
         </div>
       </div>
-      
-      <div id="settings" class="settings blueMode">
-        <div class="settingItems settingItemsNormal blueMode" id="settingItemsNormal">
-          <ul>
-            <li><p><b>Service settings</b></p></li>
-          </ul><br/>
-          <ul>
-            <li>
-              <div class="checkboxes checklabel blueMode">
-                <br>
-               <label for="checkSettingsLocalSocket">Local socket<input type="checkbox" id="checkSettingsLocalSocket" onchange="socketCheckChanged(this)"/></label>
+
+      <nav class="nav">
+        <button class="nav-item" onclick="switchView('service')" id="btnNavService">
+          <svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+          <span>Status</span>
+        </button>
+        <button class="nav-item" onclick="switchView('settings')" id="btnNavSettings">
+          <svg viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
+          <span>Settings</span>
+        </button>
+        <button class="nav-item" onclick="switchView('logs')" id="btnNavLogs">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M13 15h4"/></svg>
+          <span>Logs</span>
+        </button>
+        <button class="nav-item" onclick="switchView('about')" id="btnNavAbout">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>
+          <span>About</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="label">Theme</div>
+        <div class="swatches">
+          <button class="swatch swatch-blue" id="btnLightBlue" onclick="switchLightMode('blue')" aria-label="Blue theme"></button>
+          <button class="swatch swatch-dark" id="btnLightDark" onclick="switchLightMode('dark')" aria-label="Dark theme"></button>
+          <button class="swatch swatch-black" id="btnLightBlack" onclick="switchLightMode('black')" aria-label="Black theme"></button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="content">
+      <!-- Status -->
+      <section id="service" class="page">
+        <header class="page-header">
+          <h1>Status</h1>
+          <p>The hyperion-webos capture service on this TV</p>
+        </header>
+
+        <div class="hero" id="serviceHero" data-state="pending">
+          <div class="hero-inner">
+            <div class="hero-main">
+              <div class="label"><span class="dot"></span>Capture</div>
+              <div class="hero-status" id="txtServiceStatus">Loading status..</div>
+              <div class="hero-meta">Service <span id="txtServiceVersion">loading..</span></div>
+            </div>
+            <div class="hero-metric">
+              <div class="metric-value" id="txtInfoFPS">-</div>
+              <div class="label">frames per second</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" onclick="serviceStart()" id="btnServiceStart">
+            <svg viewBox="0 0 24 24"><path class="fill" d="M8 5l11 7-11 7z"/></svg>Start
+          </button>
+          <button class="btn" onclick="serviceStop()" id="btnServiceStop">
+            <svg viewBox="0 0 24 24"><rect class="fill" x="6" y="6" width="12" height="12" rx="2"/></svg>Stop
+          </button>
+          <button class="btn btn-ghost" onclick="serviceReload()" id="btnServiceReload">
+            <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></svg>Reload
+          </button>
+        </div>
+
+        <div class="tiles">
+          <div class="tile" id="tileReceiver" data-state="off">
+            <div class="label"><span class="dot"></span>Receiver</div>
+            <div class="tile-value" id="txtInfoReceiver">n/a</div>
+          </div>
+          <div class="tile" id="tileVideo" data-state="off">
+            <div class="label"><span class="dot"></span>Video capture</div>
+            <div class="tile-value" id="txtInfoVideo">n/a</div>
+          </div>
+          <div class="tile" id="tileUI" data-state="off">
+            <div class="label"><span class="dot"></span>UI capture</div>
+            <div class="tile-value" id="txtInfoUI">n/a</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Settings -->
+      <section id="settings" class="page">
+        <header class="page-header">
+          <h1>Settings</h1>
+          <p>Saved on the TV and applied by the service</p>
+        </header>
+
+        <div id="settingItemsNormal">
+          <div class="columns">
+            <div class="card">
+              <h2>Receiver</h2>
+              <div class="row">
+                <label for="checkSettingsLocalSocket">Local socket</label>
+                <input type="checkbox" class="switch" id="checkSettingsLocalSocket" onchange="socketCheckChanged(this)"/>
               </div>
-            </li>
-            <li class="group settingsocket blueMode" id="settingsocket">
-              <div class="field">
-                <p>Socket</p>
-                <select name="selectSettingsSocket" id="selectSettingsSocket" onchange="socketSelectChanged(this)">
-                  <option value="hyperhdr">/tmp/hyperhdr-domain</option>
-                  <option value="manual">manual</option>
-                </select>
-              </div>
-              <div class="manualsocket blueMode" id="manualsocket">
-                <div class="field">
-                  <p>Socket path</p>
+              <div class="group" id="settingsocket">
+                <div class="row">
+                  <label for="selectSettingsSocket">Socket</label>
+                  <select name="selectSettingsSocket" id="selectSettingsSocket" onchange="socketSelectChanged(this)">
+                    <option value="hyperhdr">/tmp/hyperhdr-domain</option>
+                    <option value="manual">manual</option>
+                  </select>
+                </div>
+                <div class="row" id="manualsocket">
+                  <label for="txtInputSettingsSocketPath">Socket path</label>
                   <input type="text" id="txtInputSettingsSocketPath"/>
                 </div>
               </div>
-            </li>
-            <li class="group settingaddressport blueMode" id="settingaddressport">
-              <div class="field">
-                <p>Address</p>
-                <input type="text" id="txtInputSettingsAddress"/>
-              </div>
-              <div class="field">
-                <p>Port</p>
-                <input type="text" id="txtInputSettingsPort"/>
-              </div>
-            </li>
-            <li>
-              <p>Hyperion priority</p>
-              <input type="text" id="txtInputSettingsPriority"/>
-            </li>
-          </ul><br/>
-          <ul>
-            <li>
-              <p>Resolution</p>
-                <select name="resolution" id="selectSettingsResolution" onchange="resolutionChanged(this)">
-                  <option value="320x180">320x180</option>
-                  <option value="256x144">256x144</option>
-                  <option value="192x108">192x108</option>
-                  <option value="128x72">128x72</option>
-                  <option value="manual">Manual</option>
-              </select>
-            </li>
-            <li class="group manualres blueMode" id="manualres">
-              <div class="field">
-                <p>Width</p>
-                <input type="text" id="txtInputSettingsWidth"/>
-              </div><br/>
-              <div class="field">
-                <p>Height</p>
-                <input type="text" id="txtInputSettingsHeight"/>
-              </div>
-            </li>
-            <li>
-              <p>Maximal FPS</p>
-              <input type="text" id="txtInputSettingsFPS"/>
-            </li>
-          </ul><br/> 
-          <ul>
-            <li><p>_______________________________________________</p></li>
-          </ul><br/>
-          <ul>
-            <li>
-              <p>Video capture backend</p>
-              <select name="selectSettingsVideoBackend" id="selectSettingsVideoBackend">
-                <option value="auto">Automatic detection</option>
-                <option value="libdile_vt">libdile_vt (WebOS 3.x+)</option>
-                <option value="libvtcapture">libvtcapture (WebOS 5.x+)</option>
-                <option value="disabled">disabled</option>
-              </select>
-            </li>
-            <li>
-              <p>Graphical capture backend</p>
-              <select name="selectSettingsGraphicalBackend" id="selectSettingsGraphicalBackend">
-                <option value="auto">Automatic detection</option>
-                <option value="libgm">libgm (WebOS 3.x+)</option>
-                <option value="libhalgal">libhalgal (WebOS 5.x+)</option>
-                <option value="disabled">disabled</option>
-              </select>
-              </li>
-              <li>
-                <div class="checkboxes checklabel blueMode">
-                  <label for="checkSettingsAutostart">Autostart<input type="checkbox" id="checkSettingsAutostart"/></label><br/>
-                  <label for="checkSettingsVSync">VSync<input type="checkbox" id="checkSettingsVSync"/></label>
-                  <label for="checkSettingsNV12">NV12<input type="checkbox" id="checkSettingsNV12"/></label>
+              <div class="group" id="settingaddressport">
+                <div class="row">
+                  <label for="txtInputSettingsAddress">Address</label>
+                  <input type="text" id="txtInputSettingsAddress" placeholder="192.168.1.20"/>
                 </div>
-              </li>
-            </ul><br/>
-        </div>
-        <div class="settingItems settingItemsAdv blueMode" id="settingItemsAdv">
-          <ul>
-           <li><p><b>Service advanced settings</b></p></li>
-         </ul><br/><br/>
-         <div class="dileVTCheckbox checklabel blueMode">
-           <ul>
-             <li>
-               <label><b>DILE_VT quirks:</b></label>
-             </li>
-             <li>
-               <div class="checkboxes blueMode">
-                 <label for="checkSettingsQUIRK_DILE_VT_NO_FREEZE_CAPTURE">QUIRK_DILE_VT_NO_FREEZE_CAPTURE<input type="checkbox" id="checkSettingsQUIRK_DILE_VT_NO_FREEZE_CAPTURE"/></label><br/>
-                 <label for="checkSettingsQUIRK_DILE_VT_CREATE_EX">QUIRK_DILE_VT_CREATE_EX<input type="checkbox" id="checkSettingsQUIRK_DILE_VT_CREATE_EX"/></label>
-               </div>
-             </li>
-             <li>
-               <div class="checkboxes blueMode">
-                 <label for="checkSettingsQUIRK_DILE_VT_DUMP_LOCATION_2">QUIRK_DILE_VT_DUMP_LOCATION_2<input type="checkbox" id="checkSettingsQUIRK_DILE_VT_DUMP_LOCATION_2"/></label>
-               </div>
-             </li>
-           </ul>
-         </div>
-         <ul>
-           <li><p>_______________________________________________</p></li>
-         </ul><br/><br/>
-         <div class="vtCaptureCheckbox checklabel blueMode">
-           <ul>
-             <li>
-               <label><b>vtCapture quirks:</b></label>
-             </li>
-             <li>
-               <div class="checkboxes blueMode">
-                 <label for="checkSettingsQUIRK_VTCAPTURE_FORCE_CAPTURE">QUIRK_VTCAPTURE_FORCE_CAPTURE<input type="checkbox" id="checkSettingsQUIRK_VTCAPTURE_FORCE_CAPTURE"/></label>
-               </div>
-             </li>
-           </ul><br/>
-         </div>
-         <ul>
-           <li><p>_______________________________________________</p></li>
-         </ul><br/><br/>
-         <div class="GlobalCheckbox checklabel blueMode">
-           <ul>
-             <li>
-               <div class="checkboxes blueMode">
-                 <label for="checkSettingsNoHDR">Disable HyperHDR SDR/HDR switch<input type="checkbox" id="checkSettingsNoHDR"/></label>
-               </div>
-             </li>
-             <li>
-               <div class="checkboxes blueMode">
-                 <label for="checkSettingsNoPowerstate">Disable powerstate check<input type="checkbox" id="checkSettingsNoPowerstate"/></label>
-               </div>
-             </li>
-           </ul><br/>
-         </div>
-       </div>
-        <div class="btns blueMode">
-          <button onclick="serviceSaveSettings()" id="btnSettingsSave" disabled>Save</button>
-          <button onclick="serviceResetSettings()" id="btnSettingsReset" disabled>Reset</button>
-          <button onclick="toggleAdvanced()" id="btnSettingsAdvanced">Advanced</button>
-        </div>
-        <div class="btns blueMode">
-          <button onclick="tvReboot()" id="btnSettingsReboot">Reboot</button>
-        </div>
-      </div>
-      
-      <div id="logs" class="logs blueMode">
-        <div class="upperTab blueMode">
-          <p>Some very simple experimental feature to collect logs. Setup logging is needed after a reboot.<br/>Will be reworked in newer versions. Press the load button to get last 200 log entries.</p>
-          <div class="logsBtns btns blueMode" id="logsBtns">
-            <button id="btnLogSwitchPicCap" onclick="switchLog('piccap')">PicCap</button>
-            <button id="btnLogSwitchHyperion" onclick="switchLog('hyperion')">Hyperion-WebOS</button>
-            <button id="btnLogStartStop" onclick="startStopLogging()">Setup logging</button>
-            <button id="btnLogReload" onclick="reloadHyperionLog()">Load last 200</button>
-            <button id="btnLogExport" onclick="exportPicCapLog()">Export PicCap log</button>
-            <button id="btnKillHyperion" onclick="restartHyperion()">Full service restart</button>
+                <div class="row">
+                  <label for="txtInputSettingsPort">Port</label>
+                  <input type="text" id="txtInputSettingsPort" placeholder="19400"/>
+                </div>
+              </div>
+              <div class="row">
+                <label for="txtInputSettingsPriority">Priority</label>
+                <input type="text" id="txtInputSettingsPriority" placeholder="150"/>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Capture</h2>
+              <div class="row">
+                <label for="selectSettingsResolution">Resolution</label>
+                <select name="resolution" id="selectSettingsResolution" onchange="resolutionChanged(this)">
+                  <option value="320x180">320 &times; 180</option>
+                  <option value="256x144">256 &times; 144</option>
+                  <option value="192x108">192 &times; 108</option>
+                  <option value="128x72">128 &times; 72</option>
+                  <option value="manual">Manual</option>
+                </select>
+              </div>
+              <div class="group" id="manualres">
+                <div class="row">
+                  <label for="txtInputSettingsWidth">Width</label>
+                  <input type="text" id="txtInputSettingsWidth"/>
+                </div>
+                <div class="row">
+                  <label for="txtInputSettingsHeight">Height</label>
+                  <input type="text" id="txtInputSettingsHeight"/>
+                </div>
+              </div>
+              <div class="row">
+                <label for="txtInputSettingsFPS">Max FPS</label>
+                <input type="text" id="txtInputSettingsFPS" placeholder="30"/>
+              </div>
+              <div class="row">
+                <label for="selectSettingsVideoBackend">Video</label>
+                <select name="selectSettingsVideoBackend" id="selectSettingsVideoBackend">
+                  <option value="auto">Automatic</option>
+                  <option value="libdile_vt">libdile_vt (webOS 3+)</option>
+                  <option value="libvtcapture">libvtcapture (webOS 5+)</option>
+                  <option value="disabled">Disabled</option>
+                </select>
+              </div>
+              <div class="row">
+                <label for="selectSettingsGraphicalBackend">UI</label>
+                <select name="selectSettingsGraphicalBackend" id="selectSettingsGraphicalBackend">
+                  <option value="auto">Automatic</option>
+                  <option value="libgm">libgm (webOS 3+)</option>
+                  <option value="libhalgal">libhalgal (webOS 5+)</option>
+                  <option value="disabled">Disabled</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="card card-narrow">
+              <h2>Options</h2>
+              <div class="row">
+                <label for="checkSettingsAutostart">Autostart</label>
+                <input type="checkbox" class="switch" id="checkSettingsAutostart"/>
+              </div>
+              <div class="row">
+                <label for="checkSettingsVSync">VSync</label>
+                <input type="checkbox" class="switch" id="checkSettingsVSync"/>
+              </div>
+              <div class="row">
+                <label for="checkSettingsNV12">NV12</label>
+                <input type="checkbox" class="switch" id="checkSettingsNV12"/>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="consoleLog logBox blueMode" id="consoleLog">
-          <textarea id="textareaConsoleLog">Logs from PicCap
-          </textarea>
+
+        <div id="settingItemsAdv">
+          <div class="columns">
+            <div class="card">
+              <h2>DILE_VT quirks</h2>
+              <div class="row">
+                <label for="checkSettingsQUIRK_DILE_VT_NO_FREEZE_CAPTURE">No freeze on capture</label>
+                <input type="checkbox" class="switch" id="checkSettingsQUIRK_DILE_VT_NO_FREEZE_CAPTURE"/>
+              </div>
+              <div class="row">
+                <label for="checkSettingsQUIRK_DILE_VT_CREATE_EX">Use DILE_VT_CreateEx</label>
+                <input type="checkbox" class="switch" id="checkSettingsQUIRK_DILE_VT_CREATE_EX"/>
+              </div>
+              <div class="row">
+                <label for="checkSettingsQUIRK_DILE_VT_DUMP_LOCATION_2">Dump location 2</label>
+                <input type="checkbox" class="switch" id="checkSettingsQUIRK_DILE_VT_DUMP_LOCATION_2"/>
+              </div>
+            </div>
+            <div class="card">
+              <h2>vtCapture quirks</h2>
+              <div class="row">
+                <label for="checkSettingsQUIRK_VTCAPTURE_FORCE_CAPTURE">Force capture</label>
+                <input type="checkbox" class="switch" id="checkSettingsQUIRK_VTCAPTURE_FORCE_CAPTURE"/>
+              </div>
+            </div>
+            <div class="card">
+              <h2>Behaviour</h2>
+              <div class="row">
+                <label for="checkSettingsNoHDR">No HyperHDR SDR/HDR switch</label>
+                <input type="checkbox" class="switch" id="checkSettingsNoHDR"/>
+              </div>
+              <div class="row">
+                <label for="checkSettingsNoPowerstate">No power state check</label>
+                <input type="checkbox" class="switch" id="checkSettingsNoPowerstate"/>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="hyperionLog logBox blueMode" id="hyperionLog">
-          <textarea id="textareaHyperionLog">Logs from hyperion-webos - Log gathering must be started and reloaded manually.
-          </textarea>
+
+        <div class="actions">
+          <button class="btn btn-primary" onclick="serviceSaveSettings()" id="btnSettingsSave" disabled>Save</button>
+          <button class="btn" onclick="serviceResetSettings()" id="btnSettingsReset" disabled>Reset</button>
+          <button class="btn btn-ghost" onclick="toggleAdvanced()" id="btnSettingsAdvanced">Advanced</button>
+          <span class="spacer"></span>
+          <button class="btn btn-danger" onclick="tvReboot()" id="btnSettingsReboot">Reboot TV</button>
         </div>
-      </div>
-      
-      <div id="about" class="About blueMode">
-        <div class="sub_title blueMode">
-          <p>Some info about this project</p>
-        </div><br/>
-        <div class="aboutItems blueMode">
-          <ul>
-            <li>
-              <p>PicCap is the frontend app, which you have installed on your TV and you can see here, to make things as easy as possible. It ships and controls the seperated hyperion-webos background service, which controls the capture interfaces on your TV based on reverse engineering, proccesses the output and sends the resulting low quality image data to a receiver like Hyperion's flatbuffer server.<br/>On newer TVs there is no official way for capturing DRM-protected content like Netflix or Amazon. This restriction doesn't take place for content comming from an HDMI input.<br/>So currently as a workaround you can play your media using your PC, FireTV-Stick or Chromecast and still enjoy your LEDs.<br/><u>This app requires to be run as root and tries to do this at the first start using the Homebrew Channel.</u></p>
-            </li>
-          </ul>
-          <ul>
-            <li><p>_______________________________________________</p></li>
-          </ul><br/>
-          <ul>
-            <li>
-              <p><br/>Feel free to raise an issue or pull request, or come to the OpenLG-Discord, if you have some questions.</p>
-            </li> 
-          </ul><br/>
-          <ul>
-            <li><p>GitHub-Links: <a href="https://github.com/webosbrew/hyperion-webos">github.com/webosbrew/hyperion-webos</a> | <a href="https://github.com/TBSniller/piccap">github.com/TBSniller/piccap</a></p></li>
-          </ul><br/>
-           <ul>
-            <li><p>OpenLG-Discord: <a href="https://discord.gg/9sqAgHVRhP">discord.gg/9sqAgHVRhP</a></p></li>
-          </ul><br/>
-          <ul>
-            <li><p>_______________________________________________</p></li>
-          </ul><br/>
-          <ul>
-            <li><p><br/>Some love to everyone who was, or still is involved into this project and of course the OpenLG-/Hyperion-Community! ♥</p></li>
-          </ul><br/><br/>
-          <ul>
-            <li>
-              <p style="text-align: left">hyperion-webos</p>
-              <div class="hyperionwebosContributors avatars blueMode"></div>
-            </li>
-            <li>
-              <p style="text-align: left">PicCap</p>
-              <div class="piccapContributors avatars blueMode"></div>
-            </li>
-          </ul>
+      </section>
+
+      <!-- Logs -->
+      <section id="logs" class="page">
+        <header class="page-header">
+          <h1>Logs</h1>
+          <p>"Setup logging" is needed again after each TV reboot. "Load last 200" fetches the service log.</p>
+        </header>
+
+        <div class="toolbar">
+          <div class="segmented">
+            <button id="btnLogSwitchPicCap" onclick="switchLog('piccap')">PicCap</button>
+            <button id="btnLogSwitchHyperion" onclick="switchLog('hyperion')">hyperion-webos</button>
+          </div>
+          <span class="spacer"></span>
+          <button class="btn btn-small" id="btnLogStartStop" onclick="startStopLogging()">Setup logging</button>
+          <button class="btn btn-small" id="btnLogReload" onclick="reloadHyperionLog()">Load last 200</button>
+          <button class="btn btn-small" id="btnLogExport" onclick="exportPicCapLog()">Export logs</button>
+          <button class="btn btn-small btn-danger" id="btnKillHyperion" onclick="restartHyperion()">Restart service</button>
         </div>
-      </div>
-    </div>
-    <div class="status blueMode">
-      <div class="lightMode blueMode">
-        <button id="btnLightBlue" onclick="switchLightMode('blue')"><img src="assets/icon_lightModeBlue.png" alt="Blue mode"></button>
-        <button id="btnLightDark" onclick="switchLightMode('dark')"><img src="assets/icon_lightModeDark.png" alt="Dark mode"></button>
-        <button id="btnLightBlack" onclick="switchLightMode('black')"><img src="assets/icon_lightModeBlack.png" alt="Black mode"></button>
-      </div>
-      <div class="info blueMode">
-        <p>State: </p>
-        <p id="txtInfoState">Loading..</p>
-        
-        <p> | Receiver: </p>
-        <p id="txtInfoReceiver">n/a</p>
-        
-        <!--- UI --->
-        <p> | UI: </p>
-        <p id="txtInfoUI">n/a</p>
-        
-        <!--- Video --->
-        <p> | Video: </p>
-        <p id="txtInfoVideo">n/a</p>
-        
-        <p> | FPS: </p>
-        <p id="txtInfoFPS">n/a</p>
-      </div>
-    </div>
+
+        <div class="logbox" id="consoleLog">
+          <textarea id="textareaConsoleLog" readonly>Logs from PicCap
+</textarea>
+        </div>
+        <div class="logbox" id="hyperionLog">
+          <textarea id="textareaHyperionLog" readonly>Logs from hyperion-webos - press "Setup logging", then "Load last 200".
+</textarea>
+        </div>
+      </section>
+
+      <!-- About -->
+      <section id="about" class="page">
+        <header class="page-header">
+          <h1>About</h1>
+          <p>Ambient lighting for LG webOS TVs</p>
+        </header>
+
+        <div class="columns">
+          <div class="card card-wide">
+            <h2>PicCap and hyperion-webos</h2>
+            <p class="prose">PicCap is the app you are looking at. It ships and controls hyperion-webos, a background service that captures the picture through the TV's own capture interfaces (found by reverse engineering), scales it down and sends it to a receiver such as Hyperion or HyperHDR, which drives your LEDs.</p>
+            <p class="prose">There is no official way to capture DRM-protected streams such as Netflix or Prime Video. HDMI inputs are not affected, so playing through a PC, Fire TV stick or Chromecast keeps your LEDs working.</p>
+            <p class="prose">PicCap needs root and sets it up on first start through the Homebrew Channel.</p>
+          </div>
+          <div class="card">
+            <h2>This build</h2>
+            <p class="prose callout">Unofficial personal build by gctom57, not supported by the PicCap or webOS Homebrew projects. Please report problems with it at <a href="https://github.com/gctom57/piccap">github.com/gctom57/piccap</a>, not to the official projects.</p>
+            <p class="prose links">Official projects:<br><a href="https://github.com/TBSniller/piccap">TBSniller/piccap</a><br><a href="https://github.com/webosbrew/hyperion-webos">webosbrew/hyperion-webos</a></p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Credits</h2>
+          <p class="prose">Thanks to everyone who works on these projects, and to the OpenLG and Hyperion communities.</p>
+          <div class="credits">
+            <div class="credits-col">
+              <div class="label">hyperion-webos</div>
+              <div class="hyperionwebosContributors avatars"></div>
+            </div>
+            <div class="credits-col">
+              <div class="label">PicCap</div>
+              <div class="piccapContributors avatars"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="statusbar">
+      <span class="label">Last event</span>
+      <span id="txtInfoState">Loading..</span>
+    </footer>
   </body>
 </html>
