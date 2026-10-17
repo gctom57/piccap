@@ -4,8 +4,11 @@ import logIt from './log';
 
 function setButtonActive(btnId, active) {
   const btn = document.getElementById(btnId);
-  btn.style.background = active ? 'white' : null;
-  btn.style.color = active ? 'black' : null;
+  if (active) {
+    btn.classList.add('is-active');
+  } else {
+    btn.classList.remove('is-active');
+  }
 }
 
 const views = {
@@ -36,7 +39,7 @@ window.switchView = function (view) {
 };
 
 window.resolutionChanged = function (elem) {
-  document.getElementById('manualres').style.display = elem.value === 'manual' ? 'inline' : 'none';
+  document.getElementById('manualres').style.display = elem.value === 'manual' ? 'flex' : 'none';
 };
 
 window.socketCheckChanged = function (elem) {
@@ -50,7 +53,7 @@ window.socketCheckChanged = function (elem) {
 };
 
 window.socketSelectChanged = function (elem) {
-  document.getElementById('manualsocket').style.display = elem.value === 'manual' ? 'inline' : 'none';
+  document.getElementById('manualsocket').style.display = elem.value === 'manual' ? 'flex' : 'none';
 };
 
 window.toggleAdvanced = function () {
@@ -92,13 +95,8 @@ window.switchLightMode = function (color) {
 
   Object.keys(lightModes).forEach((mode) => {
     setButtonActive(lightModes[mode], mode === color);
-    if (mode !== color) {
-      document.querySelectorAll(`.${mode}Mode`).forEach((elem) => {
-        elem.classList.add(`${color}Mode`);
-        elem.classList.remove(`${mode}Mode`);
-      });
-    }
   });
+  document.body.className = `theme-${color}`;
   saveLightMode(color);
 };
 
