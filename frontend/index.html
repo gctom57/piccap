@@ -65,6 +65,10 @@
               <div class="hero-status" id="txtServiceStatus">Loading status..</div>
               <div class="hero-meta">Service <span id="txtServiceVersion">loading..</span></div>
             </div>
+            <div class="hero-preview is-empty" id="previewBox">
+              <canvas id="previewCanvas" width="64" height="36"></canvas>
+              <div class="label">Preview</div>
+            </div>
             <div class="hero-metric">
               <div class="metric-value" id="txtInfoFPS">-</div>
               <div class="label">frames per second</div>
@@ -142,6 +146,12 @@
                 <label for="txtInputSettingsPriority">Priority</label>
                 <input type="text" id="txtInputSettingsPriority" placeholder="150"/>
               </div>
+              <div class="row row-actions">
+                <button class="btn btn-small" id="btnFindReceivers" onclick="findReceivers('receiverResults', 'txtInputSettingsAddress', 'txtInputSettingsPort', null)">Find receivers</button>
+                <button class="btn btn-small" id="btnTestReceiver" onclick="testReceiver('txtInputSettingsAddress', 'txtInputSettingsPort', 'receiverTestResult')">Test connection</button>
+              </div>
+              <div class="receiver-results" id="receiverResults"></div>
+              <div class="test-result" id="receiverTestResult"></div>
             </div>
 
             <div class="card">
@@ -321,6 +331,35 @@
         </div>
       </section>
     </main>
+
+    <div class="wizard" id="setupWizard">
+      <div class="wizard-panel">
+        <h1>Welcome to PicCap</h1>
+        <p class="wizard-intro">Choose the receiver that drives your LEDs: Hyperion or HyperHDR, running on a PC or a Raspberry Pi on your network.</p>
+
+        <div class="label">Found on your network</div>
+        <div class="receiver-results" id="wizardResults"></div>
+
+        <div class="label wizard-manual">Or enter it yourself</div>
+        <div class="row">
+          <label for="wizardAddress">Address</label>
+          <input type="text" id="wizardAddress" placeholder="192.168.1.20"/>
+        </div>
+        <div class="row">
+          <label for="wizardPort">Port</label>
+          <input type="text" id="wizardPort" value="19400"/>
+        </div>
+        <div class="test-result" id="wizardTestResult"></div>
+
+        <div class="actions">
+          <button class="btn btn-primary" id="btnWizardFinish" onclick="wizardFinish()">Save and start</button>
+          <button class="btn" id="btnWizardTest" onclick="testReceiver('wizardAddress', 'wizardPort', 'wizardTestResult')">Test</button>
+          <button class="btn" id="btnWizardSearch" onclick="findReceivers('wizardResults', 'wizardAddress', 'wizardPort', 'wizardTestResult')">Search again</button>
+          <span class="spacer"></span>
+          <button class="btn btn-ghost" id="btnWizardSkip" onclick="hideWizard(true)">Skip</button>
+        </div>
+      </div>
+    </div>
 
     <footer class="statusbar">
       <span class="label">Last event</span>
