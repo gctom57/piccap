@@ -34,7 +34,6 @@ const MAX_ELEVATION_ATTEMPTS = 3;
 let isRoot = false;
 let elevationStartedAt = 0; // 0 = no elevation attempt running
 let elevationAttempts = 0;
-let statusFailures = 0;
 let settingsLoaded = false;
 
 function setSettingsButtonsEnabled(enabled) {
@@ -60,9 +59,10 @@ function killHyperion() {
     {
       method: 'exec',
       parameters: {
-        // SIGTERM lets the service release the capture drivers; only force
-        // kill if it is still alive after 5 seconds
-        command: 'pid=$(pidof hyperion-webos) || exit 0; kill $pid; for i in 1 2 3 4 5; do sleep 1; kill -0 $pid 2>/dev/null || exit 0; done; kill -9 $pid',
+        // SIGTERM lets the service stop capture and release the drivers. Only
+        // force kill as a last resort: a process killed while capturing
+        // breaks DILE_VT capture until the TV reboots (webOS 3.5)
+        command: 'pid=$(pidof hyperion-webos) || exit 0; kill $pid; for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do sleep 1; kill -0 $pid 2>/dev/null || exit 0; done; kill -9 $pid',
       },
       onSuccess: onHBExec,
       onFailure: onHBExec,
@@ -108,33 +108,14 @@ function makeServiceRoot() {
 }
 
 let checkRootStatusIntervalID = null;
-function onCheckRootStatus(result) {
+
+// Starts an elevation attempt unless one is still running or we gave up
+function maybeElevate() {
   if (isRoot) {
     return;
   }
 
-  // A service that is not elevated yet may not answer at all (it can be
-  // denied on the bus until it is), so a failed call still leads to elevation
-  const statusFailed = result.returnValue !== true;
-  if (statusFailed) {
-    statusFailures += 1;
-    logIt(`Getting root-status from PicCap-Service failed! Code: ${result.errorCode}`);
-    document.getElementById('txtInfoState').innerHTML = 'PicCap-Service status failed!';
-    // Give a freshly launched service one round to come up first
-    if (statusFailures < 2) {
-      return;
-    }
-  } else if (result.elevated) {
-    logIt('PicCap-Service returned rooted!');
-    document.getElementById('txtInfoState').innerHTML = 'Running as root';
-    isRoot = true;
-    clearInterval(checkRootStatusIntervalID);
-    elevationStartedAt = 0;
-    return;
-  }
-
   if (elevationStartedAt !== 0 && Date.now() - elevationStartedAt < ELEVATION_TIMEOUT_MS) {
-    logIt('PicCap-Service returned not rooted yet! Will check again soon.');
     document.getElementById('txtInfoState').innerHTML = 'Not running as root. Service elevation in progress..';
     return;
   }
@@ -155,10 +136,35 @@ function onCheckRootStatus(result) {
   makeServiceRoot();
 }
 
+function onCheckRootStatus(result) {
+  if (isRoot) {
+    return;
+  }
+
+  if (result.returnValue !== true) {
+    logIt(`Getting root-status from PicCap-Service failed! Code: ${result.errorCode}`);
+    document.getElementById('txtInfoState').innerHTML = 'PicCap-Service status failed!';
+    return;
+  }
+
+  if (result.elevated) {
+    logIt('PicCap-Service returned rooted!');
+    document.getElementById('txtInfoState').innerHTML = 'Running as root';
+    isRoot = true;
+    clearInterval(checkRootStatusIntervalID);
+    elevationStartedAt = 0;
+    return;
+  }
+
+  logIt('PicCap-Service returned not rooted yet!');
+  maybeElevate();
+}
+
 function checkRoot() {
   document.getElementById('txtServiceStatus').innerHTML = 'Processing root check';
   logIt('Starting loop for PicCap-Service to get root-status');
 
+  let rounds = 0;
   checkRootStatusIntervalID = window.setInterval(() => {
     logIt('Calling PicCap-Service to get root-status');
     document.getElementById('txtInfoState').innerHTML = 'Checking root status';
@@ -173,6 +179,15 @@ function checkRoot() {
       },
     );
     /* eslint-enable no-undef */
+
+    // An unelevated service can crash before it registers (some capture
+    // libraries need root), and then this call never gets any reply. So
+    // elevation must not depend on an answer: after one round to let the
+    // service start, keep elevating until it reports root.
+    rounds += 1;
+    if (rounds >= 2) {
+      maybeElevate();
+    }
   }, 3000);
 }
 
@@ -496,6 +511,54 @@ window.reloadHyperionLog = () => {
     },
   );
   /* eslint-enable no-undef */
+};
+
+const LOG_EXPORT_PATH = '/tmp/piccap-frontend.log';
+// Base64 keeps the log text out of shell syntax; chunks keep each Luna
+// message small. Must stay a multiple of 4 so chunks decode on their own.
+const LOG_EXPORT_CHUNK = 12000;
+
+// Writes the in-app PicCap log to a file on the TV so it can be read over SSH
+window.exportPicCapLog = () => {
+  const text = document.getElementById('textareaConsoleLog').value;
+  const encoded = window.btoa(unescape(encodeURIComponent(text)));
+  const chunks = [];
+  for (let i = 0; i < encoded.length; i += LOG_EXPORT_CHUNK) {
+    chunks.push(encoded.substr(i, LOG_EXPORT_CHUNK));
+  }
+
+  document.getElementById('txtInfoState').textContent = 'Exporting PicCap log..';
+  const writeChunk = (index) => {
+    if (index >= chunks.length) {
+      logIt(`PicCap log exported to ${LOG_EXPORT_PATH}`);
+      document.getElementById('txtInfoState').textContent = `PicCap log saved to ${LOG_EXPORT_PATH}`;
+      return;
+    }
+    /* eslint-disable no-undef */
+    webOS.service.request(
+      'luna://org.webosbrew.hbchannel.service',
+      {
+        method: 'exec',
+        parameters: {
+          command: `echo ${chunks[index]} | base64 -d ${index === 0 ? '>' : '>>'} ${LOG_EXPORT_PATH}`,
+        },
+        onSuccess(result) {
+          if (result.returnValue !== true) {
+            onHBExec(result);
+            document.getElementById('txtInfoState').textContent = 'Exporting PicCap log failed!';
+            return;
+          }
+          writeChunk(index + 1);
+        },
+        onFailure(result) {
+          onHBExec(result);
+          document.getElementById('txtInfoState').textContent = 'Exporting PicCap log failed!';
+        },
+      },
+    );
+    /* eslint-enable no-undef */
+  };
+  writeChunk(0);
 };
 
 // Using this function to setup logging for now.
