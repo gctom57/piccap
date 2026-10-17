@@ -323,6 +323,8 @@ function getSettings() {
 
           settingsLoaded = true;
           setSettingsButtonsEnabled(true);
+          // eslint-disable-next-line no-use-before-define
+          maybeShowWizard(result);
           logIt('Loading settings done!');
           document.getElementById('txtInfoState').innerHTML = 'Settings loaded';
         } else {
@@ -344,7 +346,7 @@ window.restartHyperion = () => {
   killHyperion();
 };
 
-function saveSettings(config) {
+function saveSettings(config, onSaved) {
   /* eslint-disable no-undef */
   webOS.service.request(
     'luna://org.webosbrew.piccap.service',
@@ -355,6 +357,9 @@ function saveSettings(config) {
         if (result.returnValue === true) {
           logIt('Saving settings success!');
           document.getElementById('txtInfoState').innerHTML = 'Save settings success!';
+          if (onSaved) {
+            onSaved();
+          }
         } else {
           logIt(`Save settings for PicCap-Service failed! ${result.errorText || 'Settings were rejected.'}`);
           document.getElementById('txtInfoState').innerHTML = 'Save settings failed!';
@@ -438,7 +443,7 @@ window.serviceResetSettings = () => {
   saveSettings(config);
 };
 
-window.serviceSaveSettings = () => {
+window.serviceSaveSettings = (onSaved) => {
   // Saving an unloaded form would overwrite the stored config with blanks
   if (!settingsLoaded) {
     logIt('Settings not loaded yet, not saving.');
@@ -521,7 +526,7 @@ window.serviceSaveSettings = () => {
   }
 
   document.getElementById('txtInfoState').innerHTML = 'Sending settings..';
-  saveSettings(config);
+  saveSettings(config, typeof onSaved === 'function' ? onSaved : null);
 };
 
 window.reloadHyperionLog = () => {
@@ -729,6 +734,166 @@ window.tvReboot = () => {
   /* eslint-enable no-undef */
 };
 
+/* ---------------- Receiver setup: discovery, connection test, wizard ---------------- */
+
+function setText(id, text, className) {
+  const elem = document.getElementById(id);
+  if (elem) {
+    elem.textContent = text;
+    elem.className = className;
+  }
+}
+
+function serviceCall(method, parameters, onDone) {
+  /* eslint-disable no-undef */
+  webOS.service.request(
+    'luna://org.webosbrew.piccap.service',
+    {
+      method,
+      parameters,
+      onSuccess: onDone,
+      onFailure: onDone,
+    },
+  );
+  /* eslint-enable no-undef */
+}
+
+// Lists receivers found with SSDP in listId; choosing one fills addrId/portId
+window.findReceivers = (listId, addrId, portId, testOutId) => {
+  const list = document.getElementById(listId);
+  list.innerHTML = '';
+  setText(listId, 'Searching your network...', 'receiver-results is-busy');
+  serviceCall('discover', {}, (result) => {
+    list.innerHTML = '';
+    list.className = 'receiver-results';
+    const receivers = (result && result.returnValue === true && result.receivers) || [];
+    if (receivers.length === 0) {
+      list.textContent = result && result.returnValue === true
+        ? 'None found. Is Hyperion or HyperHDR running on the same network?'
+        : `Search failed: ${(result && result.errorText) || 'no answer from the service'}`;
+      list.className = 'receiver-results is-empty';
+      return;
+    }
+    receivers.forEach((receiver) => {
+      const port = receiver.port || 19400;
+      const button = document.createElement('button');
+      button.className = 'receiver';
+      button.textContent = `${receiver.flavor}${receiver.name ? ` · ${receiver.name}` : ''} — ${receiver.address}:${port}`;
+      button.onclick = () => {
+        document.getElementById(addrId).value = receiver.address;
+        document.getElementById(portId).value = String(port);
+        Array.prototype.forEach.call(list.children, (b) => b.classList.remove('is-active'));
+        button.classList.add('is-active');
+        if (testOutId) {
+          // eslint-disable-next-line no-use-before-define
+          window.testReceiver(addrId, portId, testOutId);
+        }
+      };
+      list.appendChild(button);
+    });
+    logIt(`Found ${receivers.length} receiver(s)`);
+  });
+};
+
+window.testReceiver = (addrId, portId, outId) => {
+  const address = document.getElementById(addrId).value.trim();
+  const port = parseInt(document.getElementById(portId).value, 10);
+  if (!isIPv4(address) || !(port >= 1 && port <= 65535)) {
+    setText(outId, 'Enter an IPv4 address and a port first', 'test-result fail');
+    return;
+  }
+  setText(outId, `Testing ${address}:${port}...`, 'test-result');
+  serviceCall('testReceiver', { address, port }, (result) => {
+    if (result && result.returnValue === true && result.reachable) {
+      setText(outId, `Reachable${result.flavor ? ` (${result.flavor})` : ''}`, 'test-result ok');
+    } else {
+      setText(outId, `Not reachable: ${(result && result.errorText) || 'no answer from the service'}`, 'test-result fail');
+    }
+  });
+};
+
+let wizardShown = false;
+
+function maybeShowWizard(settings) {
+  let skipped = false;
+  try {
+    skipped = localStorage.getItem('setupWizardSkipped') === '1';
+  } catch (e) {
+    skipped = false;
+  }
+  if (wizardShown || skipped || settings['unix-socket'] || settings.address) {
+    return;
+  }
+  wizardShown = true;
+  document.getElementById('setupWizard').classList.add('is-open');
+  document.getElementById('btnWizardSearch').focus();
+  window.findReceivers('wizardResults', 'wizardAddress', 'wizardPort', 'wizardTestResult');
+}
+
+window.hideWizard = (skipped) => {
+  document.getElementById('setupWizard').classList.remove('is-open');
+  if (skipped) {
+    try {
+      localStorage.setItem('setupWizardSkipped', '1');
+    } catch (e) {
+      // Not remembering the choice only means the wizard comes back
+    }
+  }
+};
+
+// Copies the wizard's receiver into the settings form, saves, then starts
+window.wizardFinish = () => {
+  const address = document.getElementById('wizardAddress').value.trim();
+  const port = document.getElementById('wizardPort').value.trim();
+  if (!isIPv4(address)) {
+    setText('wizardTestResult', 'Choose a receiver or enter its IPv4 address', 'test-result fail');
+    return;
+  }
+  document.getElementById('checkSettingsLocalSocket').checked = false;
+  window.socketCheckChanged(document.getElementById('checkSettingsLocalSocket'));
+  document.getElementById('txtInputSettingsAddress').value = address;
+  document.getElementById('txtInputSettingsPort').value = port || '19400';
+  window.serviceSaveSettings(() => {
+    window.hideWizard(false);
+    window.switchView('service');
+    window.serviceStart();
+  });
+};
+
+/* ---------------- Live preview ---------------- */
+
+function drawPreview(result) {
+  const box = document.getElementById('previewBox');
+  if (!result || result.returnValue !== true || !result.available || !result.rgb) {
+    box.classList.add('is-empty');
+    return;
+  }
+  const canvas = document.getElementById('previewCanvas');
+  const ctx = canvas.getContext ? canvas.getContext('2d') : null;
+  if (!ctx) {
+    return;
+  }
+  const raw = window.atob(result.rgb);
+  const image = ctx.createImageData(result.width, result.height);
+  const pixels = result.width * result.height;
+  for (let i = 0; i < pixels; i += 1) {
+    image.data[i * 4] = raw.charCodeAt(i * 3);
+    image.data[i * 4 + 1] = raw.charCodeAt(i * 3 + 1);
+    image.data[i * 4 + 2] = raw.charCodeAt(i * 3 + 2);
+    image.data[i * 4 + 3] = 255;
+  }
+  ctx.putImageData(image, 0, 0);
+  box.classList.remove('is-empty');
+}
+
+function pollPreview() {
+  // Only while the Status page is on screen
+  if (!isRoot || document.hidden || document.getElementById('service').style.display === 'none') {
+    return;
+  }
+  serviceCall('getPreview', {}, drawPreview);
+}
+
 window.addEventListener('load', () => {
   logIt('Startup of PicCap...');
   setSettingsButtonsEnabled(false);
@@ -742,6 +907,8 @@ window.addEventListener('load', () => {
       clearInterval(getStatusIntervalID);
     }
   }, 3000);
+
+  setInterval(pollPreview, 1000);
 
   logIt('Starting status loop...');
   setInterval(() => {
