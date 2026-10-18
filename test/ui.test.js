@@ -11,13 +11,15 @@ function check(cond, msg) {
   if (!cond) fails += 1;
 }
 
-function load({ elevated, settings, statusOk = () => true }) {
+function load({
+  elevated, settings, statusOk = () => true, responses = {},
+}) {
   const calls = [];
   const intervals = [];
   let now = 1000000;
   const html = fs.readFileSync(path.join(buildDir, 'index.html'), 'utf8')
     .replace(/<script[^>]*src="[^"]*"[^>]*><\/script>/g, '');
-  const dom = new JSDOM(html, { runScripts: 'outside-only', url: 'http://localhost/' });
+  const dom = new JSDOM(html, { runScripts: 'outside-only', url: 'http://localhost/', pretendToBeVisual: true });
   const w = dom.window;
   w.Date.now = () => now;
   w.setInterval = (fn) => { intervals.push(fn); return intervals.length; };
@@ -36,6 +38,7 @@ function load({ elevated, settings, statusOk = () => true }) {
         }
         if (opts.method === 'getSettings') res = { returnValue: true, ...settings };
         if (opts.method === 'exec') res = { returnValue: true, stdoutString: '', stderrString: '' };
+        if (responses[opts.method]) res = responses[opts.method](opts.parameters);
         opts.onSuccess(res);
       },
     },
@@ -122,7 +125,7 @@ const baseSettings = {
   check(elevations() === 1, 'no duplicate attempt while one is pending');
   for (let i = 0; i < 60; i += 1) tick(3000);
   check(elevations() === 3, `retries capped at 3 (got ${elevations()})`);
-  check(/Elevation failed/.test(w.document.getElementById('txtInfoState').textContent), 'gives up with a message');
+  check(/giving up/.test(w.document.getElementById('textareaConsoleLog').value), 'gives up with a message');
 }
 
 // 7. Unelevated service that doesn't answer status at all (fresh install)
@@ -182,6 +185,74 @@ end`;
     && /grep hyperion-webos \/var\/log\/messages \| tail -n 500/.test(bundle[0].parameters.command), 'app and service log bundled after the app log');
   check(calls.indexOf(bundle[0]) > calls.indexOf(ex[ex.length - 1]), 'bundle written after the last app log chunk');
   check(/Logs saved to \/tmp\/piccap-logs\.txt/.test(w.document.getElementById('txtInfoState').textContent), 'user told where the logs are');
+}
+
+// 10. First-start wizard: no receiver configured yet
+{
+  const { w, calls, tick } = load({
+    elevated: () => true,
+    settings: { ...baseSettings, address: '' },
+    responses: {
+      testReceiver: (p) => (p.address === '192.168.1.19' ? { returnValue: true, reachable: true, flavor: 'HyperHDR' } : { returnValue: true, reachable: false, errorText: 'Connection refused' }),
+    },
+  });
+  const doc = w.document;
+  tick(); tick();
+  check(doc.getElementById('setupWizard').classList.contains('is-open'), 'wizard opens when no receiver is configured');
+  check(doc.activeElement === doc.getElementById('btnWizardTest'), 'remote focus starts in the wizard');
+  w.wizardFinish();
+  check(!calls.some((c) => c.method === 'setSettings') && /IPv4/.test(doc.getElementById('wizardTestResult').textContent), 'Save and start refuses an empty address');
+
+  doc.getElementById('wizardAddress').value = '192.168.1.30';
+  w.testReceiver('wizardAddress', 'wizardPort', 'wizardTestResult');
+  check(/Not reachable: Connection refused/.test(doc.getElementById('wizardTestResult').textContent), 'refused connection explained');
+  const before = calls.filter((c) => c.method === 'testReceiver').length;
+  doc.getElementById('wizardAddress').value = 'not an ip';
+  w.testReceiver('wizardAddress', 'wizardPort', 'wizardTestResult');
+  check(calls.filter((c) => c.method === 'testReceiver').length === before && /IPv4/.test(doc.getElementById('wizardTestResult').textContent), 'invalid address rejected without asking the service');
+
+  doc.getElementById('wizardAddress').value = '192.168.1.19';
+  w.testReceiver('wizardAddress', 'wizardPort', 'wizardTestResult');
+  const tested = calls.filter((c) => c.method === 'testReceiver').pop();
+  check(tested.parameters.address === '192.168.1.19' && tested.parameters.port === 19400, 'test uses the entered address and default port');
+  check(/Reachable \(HyperHDR\)/.test(doc.getElementById('wizardTestResult').textContent), 'reachable receiver shown with its flavor');
+  w.wizardFinish();
+  const saved = calls.filter((c) => c.method === 'setSettings').pop();
+  check(saved && saved.parameters.address === '192.168.1.19' && saved.parameters.port === 19400 && saved.parameters['unix-socket'] === false, 'Save and start saves the entered receiver');
+  const order = calls.map((c) => c.method);
+  check(order.lastIndexOf('start') > order.lastIndexOf('setSettings'), 'capture starts after the settings were saved');
+  check(!doc.getElementById('setupWizard').classList.contains('is-open'), 'wizard closes after saving');
+}
+
+// 11. No wizard once a receiver is configured; Settings has a connection test
+{
+  const { w, calls, tick } = load({
+    elevated: () => true,
+    settings: baseSettings,
+    responses: { testReceiver: () => ({ returnValue: true, reachable: false, errorText: 'No answer (firewall or wrong address?)' }) },
+  });
+  tick(); tick();
+  check(!w.document.getElementById('setupWizard').classList.contains('is-open'), 'no wizard when a receiver is configured');
+  check(!w.document.getElementById('btnFindReceivers') && !calls.some((c) => c.method === 'discover'), 'no network search anywhere');
+  w.testReceiver('txtInputSettingsAddress', 'txtInputSettingsPort', 'receiverTestResult');
+  check(/Not reachable: No answer/.test(w.document.getElementById('receiverTestResult').textContent), 'Settings connection test reports the failure');
+}
+
+// 12. Preview is only fetched while the Status page is shown
+{
+  const { w, calls, tick } = load({
+    elevated: () => true,
+    settings: baseSettings,
+    responses: { getPreview: () => ({ returnValue: true, available: false }) },
+  });
+  tick(); tick();
+  const count = () => calls.filter((c) => c.method === 'getPreview').length;
+  check(count() > 0, 'preview requested on the Status page');
+  check(w.document.getElementById('previewBox').classList.contains('is-empty'), 'preview hidden while none is available');
+  w.switchView('settings');
+  const n = count();
+  tick(1000); tick(1000);
+  check(count() === n, 'no preview requests on other pages');
 }
 
 console.log(fails ? `TESTS_FAILED ${fails}` : 'ALL_PASS');

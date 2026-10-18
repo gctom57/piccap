@@ -560,6 +560,87 @@ input.switch:checked::before {
   transform: scale(1.15);
 }
 
+/* ---------- Preview ---------- */
+
+.hero-preview {
+  padding: 0 36px;
+  text-align: center;
+}
+.hero-preview.is-empty {
+  display: none;
+}
+.hero-preview canvas {
+  display: block;
+  width: 288px;
+  height: 162px;
+  margin-bottom: 10px;
+  border-radius: 14px;
+  background: #000;
+}
+
+/* ---------- Receiver setup ---------- */
+
+.row-actions {
+  justify-content: flex-end;
+}
+.row-actions .btn {
+  margin-left: 12px;
+  padding: 0 18px;
+  white-space: nowrap;
+}
+.row-actions .btn:first-child {
+  margin-left: 0;
+}
+.test-result {
+  min-height: 30px;
+  font-size: 20px;
+  font-weight: 600;
+}
+.test-result.ok {
+  color: #3ddc84;
+}
+.test-result.fail {
+  color: #ff8a80;
+}
+
+/* ---------- First-start wizard ---------- */
+
+.wizard {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 50;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.65);
+}
+.wizard.is-open {
+  display: flex;
+}
+.wizard-panel {
+  width: 1180px;
+  padding: 52px 60px 44px;
+  border-radius: 30px;
+}
+.wizard-panel h1 {
+  font-size: 50px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.wizard-intro {
+  font-size: 24px;
+  margin-bottom: 30px;
+}
+.wizard .row label {
+  flex: 0 0 180px;
+}
+.wizard .actions {
+  margin: 26px 0 0;
+}
+
 /* =================== Themes =================== */
 
 /* ---- Blue (default) ---- */
@@ -905,3 +986,11 @@ input.switch:checked::before {
   border-color: #4a7ae0;
   box-shadow: none;
 }
+
+/* ---- Setup and preview colours per theme ---- */
+.theme-blue .wizard-panel { background: #0d1a31; border: 1px solid rgba(255, 255, 255, 0.1); }
+.theme-blue .wizard-intro { color: #9fb0cf; }
+.theme-dark .wizard-panel { background: #1d1d21; border: 1px solid #2a2a2f; }
+.theme-dark .wizard-intro { color: #9b9ba3; }
+.theme-black .wizard-panel { background: #0a0a0a; border: 1px solid #1a1a1a; }
+.theme-black .wizard-intro { color: #7d7d7d; }
