@@ -734,7 +734,7 @@ window.tvReboot = () => {
   /* eslint-enable no-undef */
 };
 
-/* ---------------- Receiver setup: discovery, connection test, wizard ---------------- */
+/* ---------------- Receiver setup: connection test, wizard ---------------- */
 
 function setText(id, text, className) {
   const elem = document.getElementById(id);
@@ -757,43 +757,6 @@ function serviceCall(method, parameters, onDone) {
   );
   /* eslint-enable no-undef */
 }
-
-// Lists receivers found with SSDP in listId; choosing one fills addrId/portId
-window.findReceivers = (listId, addrId, portId, testOutId) => {
-  const list = document.getElementById(listId);
-  list.innerHTML = '';
-  setText(listId, 'Searching your network...', 'receiver-results is-busy');
-  serviceCall('discover', {}, (result) => {
-    list.innerHTML = '';
-    list.className = 'receiver-results';
-    const receivers = (result && result.returnValue === true && result.receivers) || [];
-    if (receivers.length === 0) {
-      list.textContent = result && result.returnValue === true
-        ? 'None found. Is Hyperion or HyperHDR running on the same network?'
-        : `Search failed: ${(result && result.errorText) || 'no answer from the service'}`;
-      list.className = 'receiver-results is-empty';
-      return;
-    }
-    receivers.forEach((receiver) => {
-      const port = receiver.port || 19400;
-      const button = document.createElement('button');
-      button.className = 'receiver';
-      button.textContent = `${receiver.flavor}${receiver.name ? ` · ${receiver.name}` : ''} — ${receiver.address}:${port}`;
-      button.onclick = () => {
-        document.getElementById(addrId).value = receiver.address;
-        document.getElementById(portId).value = String(port);
-        Array.prototype.forEach.call(list.children, (b) => b.classList.remove('is-active'));
-        button.classList.add('is-active');
-        if (testOutId) {
-          // eslint-disable-next-line no-use-before-define
-          window.testReceiver(addrId, portId, testOutId);
-        }
-      };
-      list.appendChild(button);
-    });
-    logIt(`Found ${receivers.length} receiver(s)`);
-  });
-};
 
 window.testReceiver = (addrId, portId, outId) => {
   const address = document.getElementById(addrId).value.trim();
@@ -826,8 +789,7 @@ function maybeShowWizard(settings) {
   }
   wizardShown = true;
   document.getElementById('setupWizard').classList.add('is-open');
-  document.getElementById('btnWizardSearch').focus();
-  window.findReceivers('wizardResults', 'wizardAddress', 'wizardPort', 'wizardTestResult');
+  document.getElementById('btnWizardTest').focus();
 }
 
 window.hideWizard = (skipped) => {
@@ -846,7 +808,7 @@ window.wizardFinish = () => {
   const address = document.getElementById('wizardAddress').value.trim();
   const port = document.getElementById('wizardPort').value.trim();
   if (!isIPv4(address)) {
-    setText('wizardTestResult', 'Choose a receiver or enter its IPv4 address', 'test-result fail');
+    setText('wizardTestResult', 'Enter the IPv4 address of your receiver', 'test-result fail');
     return;
   }
   document.getElementById('checkSettingsLocalSocket').checked = false;

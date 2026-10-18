@@ -193,33 +193,16 @@ end`;
     elevated: () => true,
     settings: { ...baseSettings, address: '' },
     responses: {
-      discover: () => ({
-        returnValue: true,
-        receivers: [
-          { address: '192.168.1.19', name: 'Living room', flavor: 'HyperHDR', port: 19400 },
-          { address: '192.168.1.30', name: '', flavor: 'Hyperion', port: 19401 },
-        ],
-      }),
       testReceiver: (p) => (p.address === '192.168.1.19' ? { returnValue: true, reachable: true, flavor: 'HyperHDR' } : { returnValue: true, reachable: false, errorText: 'Connection refused' }),
     },
   });
   const doc = w.document;
   tick(); tick();
   check(doc.getElementById('setupWizard').classList.contains('is-open'), 'wizard opens when no receiver is configured');
-  check(calls.some((c) => c.method === 'discover'), 'wizard searches the network by itself');
-  const found = doc.querySelectorAll('#wizardResults .receiver');
-  check(found.length === 2 && /HyperHDR · Living room — 192\.168\.1\.19:19400/.test(found[0].textContent), 'found receivers listed with flavor, name, address and port');
-  found[0].onclick();
-  check(doc.getElementById('wizardAddress').value === '192.168.1.19' && doc.getElementById('wizardPort').value === '19400', 'choosing a receiver fills address and port');
-  check(/Reachable \(HyperHDR\)/.test(doc.getElementById('wizardTestResult').textContent), 'choosing a receiver tests it');
+  check(doc.activeElement === doc.getElementById('btnWizardTest'), 'remote focus starts in the wizard');
   w.wizardFinish();
-  const saved = calls.filter((c) => c.method === 'setSettings').pop();
-  check(saved && saved.parameters.address === '192.168.1.19' && saved.parameters.port === 19400 && saved.parameters['unix-socket'] === false, 'Save and start saves the chosen receiver');
-  const order = calls.map((c) => c.method);
-  check(order.lastIndexOf('start') > order.lastIndexOf('setSettings'), 'capture starts after the settings were saved');
-  check(!doc.getElementById('setupWizard').classList.contains('is-open'), 'wizard closes after saving');
+  check(!calls.some((c) => c.method === 'setSettings') && /IPv4/.test(doc.getElementById('wizardTestResult').textContent), 'Save and start refuses an empty address');
 
-  // Manual entry with a receiver that refuses
   doc.getElementById('wizardAddress').value = '192.168.1.30';
   w.testReceiver('wizardAddress', 'wizardPort', 'wizardTestResult');
   check(/Not reachable: Connection refused/.test(doc.getElementById('wizardTestResult').textContent), 'refused connection explained');
@@ -227,19 +210,32 @@ end`;
   doc.getElementById('wizardAddress').value = 'not an ip';
   w.testReceiver('wizardAddress', 'wizardPort', 'wizardTestResult');
   check(calls.filter((c) => c.method === 'testReceiver').length === before && /IPv4/.test(doc.getElementById('wizardTestResult').textContent), 'invalid address rejected without asking the service');
+
+  doc.getElementById('wizardAddress').value = '192.168.1.19';
+  w.testReceiver('wizardAddress', 'wizardPort', 'wizardTestResult');
+  const tested = calls.filter((c) => c.method === 'testReceiver').pop();
+  check(tested.parameters.address === '192.168.1.19' && tested.parameters.port === 19400, 'test uses the entered address and default port');
+  check(/Reachable \(HyperHDR\)/.test(doc.getElementById('wizardTestResult').textContent), 'reachable receiver shown with its flavor');
+  w.wizardFinish();
+  const saved = calls.filter((c) => c.method === 'setSettings').pop();
+  check(saved && saved.parameters.address === '192.168.1.19' && saved.parameters.port === 19400 && saved.parameters['unix-socket'] === false, 'Save and start saves the entered receiver');
+  const order = calls.map((c) => c.method);
+  check(order.lastIndexOf('start') > order.lastIndexOf('setSettings'), 'capture starts after the settings were saved');
+  check(!doc.getElementById('setupWizard').classList.contains('is-open'), 'wizard closes after saving');
 }
 
-// 11. No wizard once a receiver is configured; nothing found is explained
+// 11. No wizard once a receiver is configured; Settings has a connection test
 {
   const { w, calls, tick } = load({
     elevated: () => true,
     settings: baseSettings,
-    responses: { discover: () => ({ returnValue: true, receivers: [] }) },
+    responses: { testReceiver: () => ({ returnValue: true, reachable: false, errorText: 'No answer (firewall or wrong address?)' }) },
   });
   tick(); tick();
-  check(!w.document.getElementById('setupWizard').classList.contains('is-open') && !calls.some((c) => c.method === 'discover'), 'no wizard when a receiver is configured');
-  w.findReceivers('receiverResults', 'txtInputSettingsAddress', 'txtInputSettingsPort', null);
-  check(/None found/.test(w.document.getElementById('receiverResults').textContent), 'empty search result explained');
+  check(!w.document.getElementById('setupWizard').classList.contains('is-open'), 'no wizard when a receiver is configured');
+  check(!w.document.getElementById('btnFindReceivers') && !calls.some((c) => c.method === 'discover'), 'no network search anywhere');
+  w.testReceiver('txtInputSettingsAddress', 'txtInputSettingsPort', 'receiverTestResult');
+  check(/Not reachable: No answer/.test(w.document.getElementById('receiverTestResult').textContent), 'Settings connection test reports the failure');
 }
 
 // 12. Preview is only fetched while the Status page is shown
