@@ -24,7 +24,7 @@ function load({
   w.Date.now = () => now;
   w.setInterval = (fn) => { intervals.push(fn); return intervals.length; };
   w.clearInterval = (id) => { intervals[id - 1] = null; };
-  w.XMLHttpRequest = function () { this.open = () => {}; this.send = () => {}; };
+  w.XMLHttpRequest = function FakeXHR() { this.open = () => {}; this.send = () => {}; };
   w.console.log = () => {};
   w.webOS = {
     service: {
@@ -32,7 +32,9 @@ function load({
         calls.push({ uri, method: opts.method, parameters: opts.parameters });
         let res = { returnValue: true };
         if (opts.method === 'status') {
-          res = statusOk() ? { returnValue: true, elevated: elevated(), isRunning: true, connected: true }
+          res = statusOk() ? {
+            returnValue: true, elevated: elevated(), isRunning: true, connected: true,
+          }
             : { returnValue: false, errorCode: -1, errorText: 'Denied method call' };
           if (!statusOk()) return; // crashed service: no callback at all
         }
@@ -52,10 +54,23 @@ function load({
 }
 
 const baseSettings = {
-  backend: 'auto', uibackend: 'auto', novideo: false, nogui: false,
-  'unix-socket': false, address: '192.168.1.20', port: 19400, priority: 150,
-  fps: 30, width: 240, height: 240, quirks: 0, vsync: true, autostart: true,
-  nohdr: false, nopowerstate: false, nv12: false,
+  backend: 'auto',
+  uibackend: 'auto',
+  novideo: false,
+  nogui: false,
+  'unix-socket': false,
+  address: '192.168.1.20',
+  port: 19400,
+  priority: 150,
+  fps: 30,
+  width: 240,
+  height: 240,
+  quirks: 0,
+  vsync: true,
+  autostart: true,
+  nohdr: false,
+  nopowerstate: false,
+  nv12: false,
 };
 
 // 1. Save gating and resolution matching
@@ -131,8 +146,11 @@ const baseSettings = {
 // 7. Unelevated service that doesn't answer status at all (fresh install)
 {
   let elevatedNow = false;
-  const { w, calls, tick } = load({ elevated: () => elevatedNow, statusOk: () => elevatedNow, settings: baseSettings });
-  const elevations = () => calls.filter((c) => c.method === 'exec' && /elevate-service/.test(c.parameters.command)).length;
+  const { w, calls, tick } = load({
+    elevated: () => elevatedNow, statusOk: () => elevatedNow, settings: baseSettings,
+  });
+  const elevations = () => calls
+    .filter((c) => c.method === 'exec' && /elevate-service/.test(c.parameters.command)).length;
   tick();
   check(elevations() === 0, 'first unanswered status gets a grace round');
   tick();
@@ -147,7 +165,9 @@ const baseSettings = {
 // 8b. Status fails with an error reply
 {
   let elevatedNow = false;
-  const { w, calls, tick } = load({ elevated: () => elevatedNow, settings: baseSettings, statusOk: () => true });
+  const { w, calls, tick } = load({
+    elevated: () => elevatedNow, settings: baseSettings, statusOk: () => true,
+  });
   const orig = w.webOS.service.request;
   w.webOS.service.request = (uri, opts) => { if (opts.method === 'status' && !elevatedNow) { calls.push({ uri, method: 'status' }); opts.onFailure({ returnValue: false, errorCode: -1 }); return; } orig(uri, opts); };
   tick(); tick();
@@ -158,7 +178,9 @@ const baseSettings = {
 
 // 8. Status never answers: gives up and says so in the status field
 {
-  const { w, calls, tick } = load({ elevated: () => false, statusOk: () => false, settings: baseSettings });
+  const { w, calls, tick } = load({
+    elevated: () => false, statusOk: () => false, settings: baseSettings,
+  });
   for (let i = 0; i < 80; i += 1) tick(3000);
   const elevations = calls.filter((c) => c.method === 'exec' && /elevate-service/.test(c.parameters.command)).length;
   check(elevations === 3, `failed status retries capped at 3 (got ${elevations})`);
