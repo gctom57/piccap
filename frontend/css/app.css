@@ -343,6 +343,33 @@ a {
   white-space: nowrap;
 }
 
+/* Flex, not grid: the C7's Chrome 38 has no CSS grid */
+.health {
+  margin: 28px 0 0;
+  padding: 24px 32px;
+}
+.health[hidden] {
+  display: none;
+}
+.health h2 {
+  margin-bottom: 14px;
+}
+.stats {
+  display: flex;
+  margin-bottom: 14px;
+}
+.stat {
+  flex: 1;
+}
+.stat-value {
+  margin-top: 6px;
+  font-size: 28px;
+  font-weight: 600;
+}
+.stat-timing {
+  font-size: 22px;
+}
+
 /* ---------- Buttons ---------- */
 
 .actions, .toolbar {

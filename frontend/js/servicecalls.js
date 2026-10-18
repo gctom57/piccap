@@ -202,6 +202,39 @@ function checkRoot() {
   }, 3000);
 }
 
+function formatUptime(seconds) {
+  if (seconds < 60) return `${seconds} s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} h ${minutes % 60} min`;
+  return `${Math.floor(hours / 24)} d ${hours % 24} h`;
+}
+
+// health (newer services): counters and per-stage time per frame, in us
+function showHealth(health) {
+  const card = document.getElementById('healthCard');
+  if (!health || typeof health !== 'object') {
+    card.hidden = true;
+    return;
+  }
+  card.hidden = false;
+  const num = (v) => (typeof v === 'number' ? String(v) : '-');
+  document.getElementById('txtHealthUptime').textContent = typeof health.uptime === 'number' ? formatUptime(health.uptime) : '-';
+  document.getElementById('txtHealthFrames').textContent = num(health.frames);
+  document.getElementById('txtHealthConnects').textContent = num(health.connects);
+  document.getElementById('txtHealthSendErrors').textContent = num(health.sendErrors);
+  document.getElementById('txtHealthMissed').textContent = num(health.vsyncMissed);
+  document.getElementById('txtHealthRestarts').textContent = num(health.videoRestarts);
+
+  const t = health.timing || {};
+  const stages = [['wait', t.waitUs], ['capture', t.acquireUs], ['convert', t.convertUs],
+    ['blend', t.processUs], ['send', t.sendUs]];
+  const parts = stages.filter((st) => typeof st[1] === 'number')
+    .map((st) => `${st[0]} ${(st[1] / 1000).toFixed(1)}`);
+  document.getElementById('txtHealthTiming').textContent = parts.length && health.frames > 0 ? `${parts.join(' · ')} ms` : '-';
+}
+
 function getStatus() {
   document.getElementById('txtInfoState').innerHTML = 'Getting status info..';
   /* eslint-disable no-undef */
@@ -226,6 +259,7 @@ function getStatus() {
           document.getElementById('txtInfoVideo').textContent = videoText;
           document.getElementById('txtInfoUI').textContent = result.uiRunning ? backendName(result.uiBackend) : 'Not capturing';
           document.getElementById('txtInfoFPS').textContent = result.isRunning && typeof result.framerate === 'number' ? result.framerate.toFixed(1) : '-';
+          showHealth(result.health);
 
           let heroState = 'stopped';
           if (result.isRunning) {

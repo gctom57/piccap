@@ -255,5 +255,39 @@ end`;
   check(count() === n, 'no preview requests on other pages');
 }
 
+// 13. Health data from newer services; older services don't send it
+{
+  const health = {
+    uptime: 7380,
+    connects: 2,
+    sendErrors: 1,
+    frames: 4500,
+    vsyncMissed: 3000,
+    videoRestarts: 0,
+    timing: {
+      waitUs: 21000, acquireUs: 1200, convertUs: 3400, processUs: 500, sendUs: 74000,
+    },
+  };
+  const status = () => ({
+    returnValue: true, elevated: true, isRunning: true, connected: true, framerate: 10, health,
+  });
+  const { w, tick } = load({ elevated: () => true, settings: baseSettings, responses: { status } });
+  tick();
+  const text = (id) => w.document.getElementById(id).textContent;
+  check(!w.document.getElementById('healthCard').hidden, 'health card shown');
+  const uptime = text('txtHealthUptime');
+  check(uptime === '2 h 3 min', `uptime formatted (got ${uptime})`);
+  const counters = text('txtHealthFrames') === '4500' && text('txtHealthMissed') === '3000';
+  check(counters, 'frame counters shown');
+  const timing = text('txtHealthTiming');
+  const expected = 'wait 21.0 · capture 1.2 · convert 3.4 · blend 0.5 · send 74.0 ms';
+  check(timing === expected, `timing in ms (got ${timing})`);
+
+  const old = load({ elevated: () => true, settings: baseSettings });
+  old.tick();
+  const oldHidden = old.w.document.getElementById('healthCard').hidden;
+  check(oldHidden, 'health card hidden for services without health data');
+}
+
 console.log(fails ? `TESTS_FAILED ${fails}` : 'ALL_PASS');
 process.exit(fails ? 1 : 0);

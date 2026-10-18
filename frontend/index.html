@@ -102,6 +102,20 @@
             <div class="tile-value" id="txtInfoUI">n/a</div>
           </div>
         </div>
+
+        <!-- Shown only by services that report health data -->
+        <div class="card health" id="healthCard" hidden>
+          <h2>Health</h2>
+          <div class="stats">
+            <div class="stat"><div class="label">Uptime</div><div class="stat-value" id="txtHealthUptime">-</div></div>
+            <div class="stat"><div class="label">Frames sent</div><div class="stat-value" id="txtHealthFrames">-</div></div>
+            <div class="stat"><div class="label">Connections</div><div class="stat-value" id="txtHealthConnects">-</div></div>
+            <div class="stat"><div class="label">Send errors</div><div class="stat-value" id="txtHealthSendErrors">-</div></div>
+            <div class="stat"><div class="label">Missed frames</div><div class="stat-value" id="txtHealthMissed">-</div></div>
+            <div class="stat"><div class="label">Video restarts</div><div class="stat-value" id="txtHealthRestarts">-</div></div>
+          </div>
+          <div class="stat-timing"><span class="label">Time per frame</span> <span id="txtHealthTiming">-</span></div>
+        </div>
       </section>
 
       <!-- Settings -->
