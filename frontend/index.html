@@ -14,10 +14,12 @@
   <body class="theme-blue">
     <aside class="sidebar">
       <div class="brand">
-        <img class="brand-logo" src="assets/logo_small.png" alt="">
+        <div class="brand-logo">
+          <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 21h8"/></svg>
+        </div>
         <div>
           <div class="brand-name">PicCap</div>
-          <div class="brand-sub">Hyperion sender <span id="txtPicCapVersion">loading...</span></div>
+          <div class="brand-sub mono"><span id="txtPicCapVersion">loading...</span> · Hyperion</div>
         </div>
       </div>
 
@@ -43,63 +45,94 @@
       <div class="sidebar-footer">
         <div class="label">Theme</div>
         <div class="swatches">
-          <button class="swatch swatch-blue" id="btnLightBlue" onclick="switchLightMode('blue')" aria-label="Blue theme"></button>
-          <button class="swatch swatch-dark" id="btnLightDark" onclick="switchLightMode('dark')" aria-label="Dark theme"></button>
+          <button class="swatch swatch-blue" id="btnLightBlue" onclick="switchLightMode('blue')" aria-label="Midnight theme"></button>
+          <button class="swatch swatch-dark" id="btnLightDark" onclick="switchLightMode('dark')" aria-label="Graphite theme"></button>
           <button class="swatch swatch-black" id="btnLightBlack" onclick="switchLightMode('black')" aria-label="Black theme"></button>
         </div>
       </div>
     </aside>
 
     <main class="content">
-      <!-- Status -->
+      <!-- Status: #serviceHero carries the capture state for the chip and the LED strip -->
       <section id="service" class="page">
-        <header class="page-header">
-          <h1>Status</h1>
-          <p>The hyperion-webos capture service on this TV</p>
-        </header>
-
-        <div class="hero" id="serviceHero" data-state="pending">
-          <div class="hero-inner">
-            <div class="hero-main">
-              <div class="label"><span class="dot"></span>Capture</div>
-              <div class="hero-status" id="txtServiceStatus">Loading status..</div>
-              <div class="hero-meta">Service <span id="txtServiceVersion">loading..</span></div>
+        <div id="serviceHero" data-state="pending">
+          <header class="page-header">
+            <div class="page-title">
+              <h1>Status</h1>
+              <p>Capture service running on this TV</p>
             </div>
-            <div class="hero-preview is-empty" id="previewBox">
-              <canvas id="previewCanvas" width="64" height="36"></canvas>
-              <div class="label">Preview</div>
+            <div class="page-aside">
+              <div class="chip chip-large status-chip"><span class="dot"></span><span id="txtServiceStatus">Loading status..</span></div>
+              <div class="chip-meta mono">service <span id="txtServiceVersion">loading..</span><span id="txtServiceUptime"></span></div>
             </div>
-            <div class="hero-metric">
-              <div class="metric-value" id="txtInfoFPS">-</div>
-              <div class="label">frames per second</div>
+          </header>
+
+          <div class="split">
+            <div class="split-col">
+              <div class="preview-frame">
+                <div class="led led-top"></div>
+                <div class="led led-bottom"></div>
+                <div class="led led-left"></div>
+                <div class="led led-right"></div>
+                <div class="preview-screen is-empty" id="previewBox">
+                  <canvas id="previewCanvas" width="64" height="36"></canvas>
+                  <div class="preview-empty">
+                    <div class="label">Captured frame</div>
+                    <div class="preview-empty-text">Shown here while the service captures</div>
+                  </div>
+                </div>
+              </div>
+              <p class="caption">Streamed to your receiver, which computes the LED colours shown around the edge.</p>
+
+              <div class="actions">
+                <button class="btn btn-primary" onclick="serviceStart()" id="btnServiceStart">
+                  <svg viewBox="0 0 24 24"><path class="fill" d="M8 5l11 7-11 7z"/></svg>Start
+                </button>
+                <button class="btn" onclick="serviceStop()" id="btnServiceStop">
+                  <svg viewBox="0 0 24 24"><rect class="fill" x="6" y="6" width="12" height="12" rx="2"/></svg>Stop
+                </button>
+                <button class="btn btn-ghost" onclick="serviceReload()" id="btnServiceReload">
+                  <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></svg>Reload
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
 
-        <div class="actions">
-          <button class="btn btn-primary" onclick="serviceStart()" id="btnServiceStart">
-            <svg viewBox="0 0 24 24"><path class="fill" d="M8 5l11 7-11 7z"/></svg>Start
-          </button>
-          <button class="btn" onclick="serviceStop()" id="btnServiceStop">
-            <svg viewBox="0 0 24 24"><rect class="fill" x="6" y="6" width="12" height="12" rx="2"/></svg>Stop
-          </button>
-          <button class="btn btn-ghost" onclick="serviceReload()" id="btnServiceReload">
-            <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></svg>Reload
-          </button>
-        </div>
-
-        <div class="tiles">
-          <div class="tile" id="tileReceiver" data-state="off">
-            <div class="label"><span class="dot"></span>Receiver</div>
-            <div class="tile-value" id="txtInfoReceiver">n/a</div>
-          </div>
-          <div class="tile" id="tileVideo" data-state="off">
-            <div class="label"><span class="dot"></span>Video capture</div>
-            <div class="tile-value" id="txtInfoVideo">n/a</div>
-          </div>
-          <div class="tile" id="tileUI" data-state="off">
-            <div class="label"><span class="dot"></span>UI capture</div>
-            <div class="tile-value" id="txtInfoUI">n/a</div>
+            <div class="split-col">
+              <div class="tiles">
+                <div class="tile">
+                  <div class="label">Frame rate</div>
+                  <div class="tile-value mono"><span id="txtInfoFPS">-</span><span class="unit">fps</span></div>
+                  <div class="tile-caption" id="txtInfoFpsTarget">-</div>
+                </div>
+                <div class="tile">
+                  <div class="label">Resolution</div>
+                  <div class="tile-value mono" id="txtInfoResolution">-</div>
+                  <div class="tile-caption" id="txtInfoFormat">-</div>
+                </div>
+              </div>
+              <div class="tiles">
+                <div class="tile" id="tileVideo" data-state="off">
+                  <div class="label"><span class="dot"></span>Video backend</div>
+                  <div class="tile-value tile-value-small mono" id="txtInfoVideo">n/a</div>
+                  <div class="tile-caption" id="txtInfoVideoMode">-</div>
+                </div>
+                <div class="tile" id="tileUI" data-state="off">
+                  <div class="label"><span class="dot"></span>UI backend</div>
+                  <div class="tile-value tile-value-small mono" id="txtInfoUI">n/a</div>
+                  <div class="tile-caption" id="txtInfoUIMode">-</div>
+                </div>
+              </div>
+              <div class="tiles">
+                <div class="tile tile-receiver" id="tileReceiver" data-state="off">
+                  <div class="tile-main">
+                    <div class="label">Receiver</div>
+                    <div class="tile-value tile-value-small mono" id="txtInfoReceiverAddress">-</div>
+                    <div class="tile-caption" id="txtInfoReceiverDetail">-</div>
+                  </div>
+                  <div class="chip receiver-chip"><span class="dot"></span><span id="txtInfoReceiver">n/a</span></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -107,124 +140,144 @@
         <div class="card health" id="healthCard" hidden>
           <h2>Health</h2>
           <div class="stats">
-            <div class="stat"><div class="label">Uptime</div><div class="stat-value" id="txtHealthUptime">-</div></div>
-            <div class="stat"><div class="label">Frames sent</div><div class="stat-value" id="txtHealthFrames">-</div></div>
-            <div class="stat"><div class="label">Connections</div><div class="stat-value" id="txtHealthConnects">-</div></div>
-            <div class="stat"><div class="label">Send errors</div><div class="stat-value" id="txtHealthSendErrors">-</div></div>
-            <div class="stat"><div class="label">Missed frames</div><div class="stat-value" id="txtHealthMissed">-</div></div>
-            <div class="stat"><div class="label">Video restarts</div><div class="stat-value" id="txtHealthRestarts">-</div></div>
+            <div class="stat"><div class="label">Uptime</div><div class="stat-value mono" id="txtHealthUptime">-</div></div>
+            <div class="stat"><div class="label">Frames sent</div><div class="stat-value mono" id="txtHealthFrames">-</div></div>
+            <div class="stat"><div class="label">Connections</div><div class="stat-value mono" id="txtHealthConnects">-</div></div>
+            <div class="stat"><div class="label">Send errors</div><div class="stat-value mono" id="txtHealthSendErrors">-</div></div>
+            <div class="stat"><div class="label">Missed frames</div><div class="stat-value mono" id="txtHealthMissed">-</div></div>
+            <div class="stat"><div class="label">Video restarts</div><div class="stat-value mono" id="txtHealthRestarts">-</div></div>
           </div>
-          <div class="stat-timing"><span class="label">Time per frame</span> <span id="txtHealthTiming">-</span></div>
+          <div class="stat-timing"><span class="label">Time per frame</span> <span class="mono" id="txtHealthTiming">-</span></div>
         </div>
       </section>
 
       <!-- Settings -->
       <section id="settings" class="page">
         <header class="page-header">
-          <h1>Settings</h1>
-          <p>Saved on the TV and applied by the service</p>
+          <div class="page-title">
+            <h1>Settings</h1>
+            <p>Saved on the TV and applied by the service</p>
+          </div>
+          <div class="page-aside">
+            <div class="chip chip-warn" id="settingsDirty" hidden><span class="dot"></span>Unsaved changes</div>
+          </div>
         </header>
 
         <div id="settingItemsNormal">
           <div class="columns">
-            <div class="card">
-              <h2>Receiver</h2>
-              <div class="row">
-                <label for="checkSettingsLocalSocket">Local socket</label>
-                <input type="checkbox" class="switch" id="checkSettingsLocalSocket" onchange="socketCheckChanged(this)"/>
-              </div>
-              <div class="group" id="settingsocket">
+            <div class="column column-receiver">
+              <div class="card">
+                <h2>Receiver</h2>
                 <div class="row">
-                  <label for="selectSettingsSocket">Socket</label>
-                  <select name="selectSettingsSocket" id="selectSettingsSocket" onchange="socketSelectChanged(this)">
-                    <option value="hyperhdr">/tmp/hyperhdr-domain</option>
-                    <option value="manual">manual</option>
+                  <label for="checkSettingsLocalSocket">Local socket</label>
+                  <input type="checkbox" class="switch" id="checkSettingsLocalSocket" onchange="socketCheckChanged(this)"/>
+                </div>
+                <div class="group" id="settingsocket">
+                  <div class="row">
+                    <label for="selectSettingsSocket">Socket</label>
+                    <select name="selectSettingsSocket" id="selectSettingsSocket" onchange="socketSelectChanged(this)">
+                      <option value="hyperhdr">/tmp/hyperhdr-domain</option>
+                      <option value="manual">manual</option>
+                    </select>
+                  </div>
+                  <div class="row" id="manualsocket">
+                    <label for="txtInputSettingsSocketPath">Socket path</label>
+                    <input type="text" class="mono" id="txtInputSettingsSocketPath"/>
+                  </div>
+                </div>
+                <div class="group" id="settingaddressport">
+                  <div class="row">
+                    <label for="txtInputSettingsAddress">Address</label>
+                    <input type="text" class="mono" id="txtInputSettingsAddress" placeholder="192.168.1.20"/>
+                  </div>
+                  <div class="row">
+                    <label for="txtInputSettingsPort">Port</label>
+                    <input type="text" class="mono" id="txtInputSettingsPort" placeholder="19400"/>
+                  </div>
+                </div>
+                <div class="row">
+                  <label for="txtInputSettingsPriority">Priority</label>
+                  <input type="text" class="mono" id="txtInputSettingsPriority" placeholder="150"/>
+                </div>
+                <div class="row row-test">
+                  <div class="test-result" id="receiverTestResult"></div>
+                  <button class="btn btn-small" id="btnTestReceiver" onclick="testReceiver('txtInputSettingsAddress', 'txtInputSettingsPort', 'receiverTestResult')">Test connection</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="column">
+              <div class="card">
+                <h2>Capture</h2>
+                <div class="row">
+                  <label for="selectSettingsResolution">Resolution</label>
+                  <select name="resolution" class="mono" id="selectSettingsResolution" onchange="resolutionChanged(this)">
+                    <option value="320x180">320 &times; 180</option>
+                    <option value="256x144">256 &times; 144</option>
+                    <option value="192x108">192 &times; 108</option>
+                    <option value="128x72">128 &times; 72</option>
+                    <option value="manual">Manual</option>
                   </select>
                 </div>
-                <div class="row" id="manualsocket">
-                  <label for="txtInputSettingsSocketPath">Socket path</label>
-                  <input type="text" id="txtInputSettingsSocketPath"/>
+                <div class="group" id="manualres">
+                  <div class="row">
+                    <label for="txtInputSettingsWidth">Width</label>
+                    <input type="text" class="mono" id="txtInputSettingsWidth"/>
+                  </div>
+                  <div class="row">
+                    <label for="txtInputSettingsHeight">Height</label>
+                    <input type="text" class="mono" id="txtInputSettingsHeight"/>
+                  </div>
                 </div>
-              </div>
-              <div class="group" id="settingaddressport">
                 <div class="row">
-                  <label for="txtInputSettingsAddress">Address</label>
-                  <input type="text" id="txtInputSettingsAddress" placeholder="192.168.1.20"/>
+                  <label for="txtInputSettingsFPS">Max FPS</label>
+                  <input type="text" class="mono" id="txtInputSettingsFPS" placeholder="30"/>
                 </div>
                 <div class="row">
-                  <label for="txtInputSettingsPort">Port</label>
-                  <input type="text" id="txtInputSettingsPort" placeholder="19400"/>
+                  <label for="selectSettingsVideoBackend">Video backend</label>
+                  <select name="selectSettingsVideoBackend" id="selectSettingsVideoBackend">
+                    <option value="auto">Automatic</option>
+                    <option value="libdile_vt">libdile_vt (webOS 3+)</option>
+                    <option value="libvtcapture">libvtcapture (webOS 5+)</option>
+                    <option value="disabled">Disabled</option>
+                  </select>
+                </div>
+                <div class="row">
+                  <label for="selectSettingsGraphicalBackend">UI backend</label>
+                  <select name="selectSettingsGraphicalBackend" id="selectSettingsGraphicalBackend">
+                    <option value="auto">Automatic</option>
+                    <option value="libgm">libgm (webOS 3+)</option>
+                    <option value="libhalgal">libhalgal (webOS 5+)</option>
+                    <option value="disabled">Disabled</option>
+                  </select>
                 </div>
               </div>
-              <div class="row">
-                <label for="txtInputSettingsPriority">Priority</label>
-                <input type="text" id="txtInputSettingsPriority" placeholder="150"/>
-              </div>
-              <div class="row row-actions">
-                <button class="btn btn-small" id="btnTestReceiver" onclick="testReceiver('txtInputSettingsAddress', 'txtInputSettingsPort', 'receiverTestResult')">Test connection</button>
-              </div>
-              <div class="test-result" id="receiverTestResult"></div>
-            </div>
 
-            <div class="card">
-              <h2>Capture</h2>
-              <div class="row">
-                <label for="selectSettingsResolution">Resolution</label>
-                <select name="resolution" id="selectSettingsResolution" onchange="resolutionChanged(this)">
-                  <option value="320x180">320 &times; 180</option>
-                  <option value="256x144">256 &times; 144</option>
-                  <option value="192x108">192 &times; 108</option>
-                  <option value="128x72">128 &times; 72</option>
-                  <option value="manual">Manual</option>
-                </select>
-              </div>
-              <div class="group" id="manualres">
-                <div class="row">
-                  <label for="txtInputSettingsWidth">Width</label>
-                  <input type="text" id="txtInputSettingsWidth"/>
+              <div class="card">
+                <h2>Options</h2>
+                <div class="option-tiles">
+                  <div class="option-tile">
+                    <div class="option-head">
+                      <label for="checkSettingsAutostart">Autostart</label>
+                      <input type="checkbox" class="switch" id="checkSettingsAutostart"/>
+                    </div>
+                    <div class="option-hint">Start capturing when the TV turns on</div>
+                  </div>
+                  <div class="option-tile">
+                    <div class="option-head">
+                      <label for="checkSettingsVSync">VSync</label>
+                      <input type="checkbox" class="switch" id="checkSettingsVSync"/>
+                    </div>
+                    <div class="option-hint">Wait for the panel refresh before grabbing</div>
+                  </div>
+                  <div class="option-tile">
+                    <div class="option-head">
+                      <label for="checkSettingsNV12">NV12</label>
+                      <input type="checkbox" class="switch" id="checkSettingsNV12"/>
+                    </div>
+                    <div class="option-hint">Send NV12 frames instead of RGB</div>
+                  </div>
                 </div>
-                <div class="row">
-                  <label for="txtInputSettingsHeight">Height</label>
-                  <input type="text" id="txtInputSettingsHeight"/>
-                </div>
-              </div>
-              <div class="row">
-                <label for="txtInputSettingsFPS">Max FPS</label>
-                <input type="text" id="txtInputSettingsFPS" placeholder="30"/>
-              </div>
-              <div class="row">
-                <label for="selectSettingsVideoBackend">Video</label>
-                <select name="selectSettingsVideoBackend" id="selectSettingsVideoBackend">
-                  <option value="auto">Automatic</option>
-                  <option value="libdile_vt">libdile_vt (webOS 3+)</option>
-                  <option value="libvtcapture">libvtcapture (webOS 5+)</option>
-                  <option value="disabled">Disabled</option>
-                </select>
-              </div>
-              <div class="row">
-                <label for="selectSettingsGraphicalBackend">UI</label>
-                <select name="selectSettingsGraphicalBackend" id="selectSettingsGraphicalBackend">
-                  <option value="auto">Automatic</option>
-                  <option value="libgm">libgm (webOS 3+)</option>
-                  <option value="libhalgal">libhalgal (webOS 5+)</option>
-                  <option value="disabled">Disabled</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="card card-narrow">
-              <h2>Options</h2>
-              <div class="row">
-                <label for="checkSettingsAutostart">Autostart</label>
-                <input type="checkbox" class="switch" id="checkSettingsAutostart"/>
-              </div>
-              <div class="row">
-                <label for="checkSettingsVSync">VSync</label>
-                <input type="checkbox" class="switch" id="checkSettingsVSync"/>
-              </div>
-              <div class="row">
-                <label for="checkSettingsNV12">NV12</label>
-                <input type="checkbox" class="switch" id="checkSettingsNV12"/>
               </div>
             </div>
           </div>
@@ -232,37 +285,41 @@
 
         <div id="settingItemsAdv">
           <div class="columns">
-            <div class="card">
-              <h2>DILE_VT quirks</h2>
-              <div class="row">
-                <label for="checkSettingsQUIRK_DILE_VT_NO_FREEZE_CAPTURE">No freeze on capture</label>
-                <input type="checkbox" class="switch" id="checkSettingsQUIRK_DILE_VT_NO_FREEZE_CAPTURE"/>
+            <div class="column">
+              <div class="card">
+                <h2>DILE_VT quirks</h2>
+                <div class="row">
+                  <label for="checkSettingsQUIRK_DILE_VT_NO_FREEZE_CAPTURE">No freeze on capture</label>
+                  <input type="checkbox" class="switch" id="checkSettingsQUIRK_DILE_VT_NO_FREEZE_CAPTURE"/>
+                </div>
+                <div class="row">
+                  <label for="checkSettingsQUIRK_DILE_VT_CREATE_EX">Use DILE_VT_CreateEx</label>
+                  <input type="checkbox" class="switch" id="checkSettingsQUIRK_DILE_VT_CREATE_EX"/>
+                </div>
+                <div class="row">
+                  <label for="checkSettingsQUIRK_DILE_VT_DUMP_LOCATION_2">Dump location 2</label>
+                  <input type="checkbox" class="switch" id="checkSettingsQUIRK_DILE_VT_DUMP_LOCATION_2"/>
+                </div>
               </div>
-              <div class="row">
-                <label for="checkSettingsQUIRK_DILE_VT_CREATE_EX">Use DILE_VT_CreateEx</label>
-                <input type="checkbox" class="switch" id="checkSettingsQUIRK_DILE_VT_CREATE_EX"/>
-              </div>
-              <div class="row">
-                <label for="checkSettingsQUIRK_DILE_VT_DUMP_LOCATION_2">Dump location 2</label>
-                <input type="checkbox" class="switch" id="checkSettingsQUIRK_DILE_VT_DUMP_LOCATION_2"/>
+              <div class="card">
+                <h2>vtCapture quirks</h2>
+                <div class="row">
+                  <label for="checkSettingsQUIRK_VTCAPTURE_FORCE_CAPTURE">Force capture</label>
+                  <input type="checkbox" class="switch" id="checkSettingsQUIRK_VTCAPTURE_FORCE_CAPTURE"/>
+                </div>
               </div>
             </div>
-            <div class="card">
-              <h2>vtCapture quirks</h2>
-              <div class="row">
-                <label for="checkSettingsQUIRK_VTCAPTURE_FORCE_CAPTURE">Force capture</label>
-                <input type="checkbox" class="switch" id="checkSettingsQUIRK_VTCAPTURE_FORCE_CAPTURE"/>
-              </div>
-            </div>
-            <div class="card">
-              <h2>Behaviour</h2>
-              <div class="row">
-                <label for="checkSettingsNoHDR">No HyperHDR SDR/HDR switch</label>
-                <input type="checkbox" class="switch" id="checkSettingsNoHDR"/>
-              </div>
-              <div class="row">
-                <label for="checkSettingsNoPowerstate">No power state check</label>
-                <input type="checkbox" class="switch" id="checkSettingsNoPowerstate"/>
+            <div class="column">
+              <div class="card">
+                <h2>Behaviour</h2>
+                <div class="row">
+                  <label for="checkSettingsNoHDR">No HyperHDR SDR/HDR switch</label>
+                  <input type="checkbox" class="switch" id="checkSettingsNoHDR"/>
+                </div>
+                <div class="row">
+                  <label for="checkSettingsNoPowerstate">No power state check</label>
+                  <input type="checkbox" class="switch" id="checkSettingsNoPowerstate"/>
+                </div>
               </div>
             </div>
           </div>
@@ -271,7 +328,9 @@
         <div class="actions">
           <button class="btn btn-primary" onclick="serviceSaveSettings()" id="btnSettingsSave" disabled>Save</button>
           <button class="btn" onclick="serviceResetSettings()" id="btnSettingsReset" disabled>Reset</button>
-          <button class="btn btn-ghost" onclick="toggleAdvanced()" id="btnSettingsAdvanced">Advanced</button>
+          <button class="btn btn-ghost" onclick="toggleAdvanced()" id="btnSettingsAdvanced">Advanced
+            <svg class="chevron" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
+          </button>
           <span class="spacer"></span>
           <button class="btn btn-danger" onclick="tvReboot()" id="btnSettingsReboot">Reboot TV</button>
         </div>
@@ -280,8 +339,18 @@
       <!-- Logs -->
       <section id="logs" class="page">
         <header class="page-header">
-          <h1>Logs</h1>
-          <p>"Setup logging" is needed again after each TV reboot. "Load last 200" fetches the service log.</p>
+          <div class="page-title">
+            <h1>Logs</h1>
+            <p>"Setup logging" is needed again after each TV reboot</p>
+          </div>
+          <div class="page-aside page-actions">
+            <button class="btn btn-primary" id="btnLogExport" onclick="exportPicCapLog()">
+              <svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Export logs
+            </button>
+            <button class="btn" id="btnLogReload" onclick="reloadHyperionLog()">
+              <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></svg>Load last 200
+            </button>
+          </div>
         </header>
 
         <div class="toolbar">
@@ -291,17 +360,15 @@
           </div>
           <span class="spacer"></span>
           <button class="btn btn-small" id="btnLogStartStop" onclick="startStopLogging()">Setup logging</button>
-          <button class="btn btn-small" id="btnLogReload" onclick="reloadHyperionLog()">Load last 200</button>
-          <button class="btn btn-small" id="btnLogExport" onclick="exportPicCapLog()">Export logs</button>
           <button class="btn btn-small btn-danger" id="btnKillHyperion" onclick="restartHyperion()">Restart service</button>
         </div>
 
         <div class="logbox" id="consoleLog">
-          <textarea id="textareaConsoleLog" readonly>Logs from PicCap
+          <textarea id="textareaConsoleLog" class="mono" readonly>Logs from PicCap
 </textarea>
         </div>
         <div class="logbox" id="hyperionLog">
-          <textarea id="textareaHyperionLog" readonly>Logs from hyperion-webos - press "Setup logging", then "Load last 200".
+          <textarea id="textareaHyperionLog" class="mono" readonly>Logs from hyperion-webos - press "Setup logging", then "Load last 200".
 </textarea>
         </div>
       </section>
@@ -309,21 +376,27 @@
       <!-- About -->
       <section id="about" class="page">
         <header class="page-header">
-          <h1>About</h1>
-          <p>Ambient lighting for LG webOS TVs</p>
+          <div class="page-title">
+            <h1>About</h1>
+            <p>Ambient lighting for LG webOS TVs</p>
+          </div>
         </header>
 
         <div class="columns">
-          <div class="card card-wide">
-            <h2>PicCap and hyperion-webos</h2>
-            <p class="prose">PicCap is the app you are looking at. It ships and controls hyperion-webos, a background service that captures the picture through the TV's own capture interfaces (found by reverse engineering), scales it down and sends it to a receiver such as Hyperion or HyperHDR, which drives your LEDs.</p>
-            <p class="prose">There is no official way to capture DRM-protected streams such as Netflix or Prime Video. HDMI inputs are not affected, so playing through a PC, Fire TV stick or Chromecast keeps your LEDs working.</p>
-            <p class="prose">PicCap needs root and sets it up on first start through the Homebrew Channel.</p>
+          <div class="column column-wide">
+            <div class="card">
+              <h2>PicCap and hyperion-webos</h2>
+              <p class="prose">PicCap is the app you are looking at. It ships and controls hyperion-webos, a background service that captures the picture through the TV's own capture interfaces (found by reverse engineering), scales it down and sends it to a receiver such as Hyperion or HyperHDR, which drives your LEDs.</p>
+              <p class="prose">There is no official way to capture DRM-protected streams such as Netflix or Prime Video. HDMI inputs are not affected, so playing through a PC, Fire TV stick or Chromecast keeps your LEDs working.</p>
+              <p class="prose">PicCap needs root and sets it up on first start through the Homebrew Channel.</p>
+            </div>
           </div>
-          <div class="card">
-            <h2>This build</h2>
-            <p class="prose callout">Unofficial personal build by gctom57, not supported by the PicCap or webOS Homebrew projects. Please report problems with it at <a href="https://github.com/gctom57/piccap">github.com/gctom57/piccap</a>, not to the official projects.</p>
-            <p class="prose links">Official projects:<br><a href="https://github.com/TBSniller/piccap">TBSniller/piccap</a><br><a href="https://github.com/webosbrew/hyperion-webos">webosbrew/hyperion-webos</a></p>
+          <div class="column">
+            <div class="card">
+              <h2>This build</h2>
+              <p class="prose callout">Unofficial personal build by gctom57, not supported by the PicCap or webOS Homebrew projects. Please report problems with it at <a href="https://github.com/gctom57/piccap">github.com/gctom57/piccap</a>, not to the official projects.</p>
+              <p class="prose links">Official projects:<br><a href="https://github.com/TBSniller/piccap">TBSniller/piccap</a><br><a href="https://github.com/webosbrew/hyperion-webos">webosbrew/hyperion-webos</a></p>
+            </div>
           </div>
         </div>
 
@@ -351,11 +424,11 @@
 
         <div class="row">
           <label for="wizardAddress">Address</label>
-          <input type="text" id="wizardAddress" placeholder="192.168.1.20"/>
+          <input type="text" class="mono" id="wizardAddress" placeholder="192.168.1.20"/>
         </div>
         <div class="row">
           <label for="wizardPort">Port</label>
-          <input type="text" id="wizardPort" value="19400"/>
+          <input type="text" class="mono" id="wizardPort" value="19400"/>
         </div>
         <div class="test-result" id="wizardTestResult"></div>
 
@@ -369,8 +442,10 @@
     </div>
 
     <footer class="statusbar">
-      <span class="label">Last event</span>
+      <span class="label mono">Last event</span>
       <span id="txtInfoState">Loading..</span>
+      <span class="spacer"></span>
+      <span class="mono statusbar-time" id="txtInfoTime"></span>
     </footer>
   </body>
 </html>

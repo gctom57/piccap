@@ -311,5 +311,31 @@ end`;
   check(oldHidden, 'health card hidden for services without health data');
 }
 
+// 14. Redesign: settings summary on Status, unsaved-changes chip, main action
+{
+  const { w, tick } = load({ elevated: () => true, settings: baseSettings });
+  tick(); tick();
+  const text = (id) => w.document.getElementById(id).textContent;
+  check(text('txtInfoReceiverAddress') === '192.168.1.20:19400', 'receiver address on Status');
+  check(text('txtInfoResolution') === '240 × 240', `resolution on Status (got ${text('txtInfoResolution')})`);
+  check(text('txtInfoFpsTarget') === 'target 30 · VSync on', `fps target (got ${text('txtInfoFpsTarget')})`);
+  const stopClass = w.document.getElementById('btnServiceStop').className;
+  check(stopClass === 'btn btn-primary', 'Stop is the main action while capturing');
+
+  const dirty = w.document.getElementById('settingsDirty');
+  check(dirty.hidden, 'no unsaved-changes chip after loading');
+  const port = w.document.getElementById('txtInputSettingsPort');
+  port.value = '19445';
+  port.dispatchEvent(new w.Event('input', { bubbles: true }));
+  check(!dirty.hidden, 'unsaved-changes chip after editing a field');
+  port.value = '19400';
+  port.dispatchEvent(new w.Event('input', { bubbles: true }));
+  check(dirty.hidden, 'chip gone when the field is back to the saved value');
+  const nv12 = w.document.getElementById('checkSettingsNV12');
+  nv12.checked = true;
+  nv12.dispatchEvent(new w.Event('change', { bubbles: true }));
+  check(!dirty.hidden, 'unsaved-changes chip after flipping a switch');
+}
+
 console.log(fails ? `TESTS_FAILED ${fails}` : 'ALL_PASS');
 process.exit(fails ? 1 : 0);
