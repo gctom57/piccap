@@ -305,6 +305,12 @@ end`;
   const expected = 'wait 21.0 · capture 1.2 · convert 3.4 · blend 0.5 · send 74.0 ms';
   check(timing === expected, `timing in ms (got ${timing})`);
 
+  // Services with the frame copy also report its time
+  health.timing.copyUs = 800;
+  tick();
+  const withCopy = text('txtHealthTiming');
+  check(withCopy.indexOf('capture 1.2 · copy 0.8 · convert') >= 0, `copy time shown (got ${withCopy})`);
+
   const old = load({ elevated: () => true, settings: baseSettings });
   old.tick();
   const oldHidden = old.w.document.getElementById('healthCard').hidden;

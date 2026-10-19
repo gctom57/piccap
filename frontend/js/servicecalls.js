@@ -228,7 +228,7 @@ function showHealth(health) {
   document.getElementById('txtHealthRestarts').textContent = num(health.videoRestarts);
 
   const t = health.timing || {};
-  const stages = [['wait', t.waitUs], ['capture', t.acquireUs], ['convert', t.convertUs],
+  const stages = [['wait', t.waitUs], ['capture', t.acquireUs], ['copy', t.copyUs], ['convert', t.convertUs],
     ['blend', t.processUs], ['send', t.sendUs]];
   const parts = stages.filter((st) => typeof st[1] === 'number')
     .map((st) => `${st[0]} ${(st[1] / 1000).toFixed(1)}`);
