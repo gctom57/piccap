@@ -203,4 +203,18 @@ window.addEventListener('load', () => {
     });
   }
   stamp();
+
+  // From the bottom of a page the theme swatches are the nearest target. Keep
+  // them for the menu: Left goes to the current view's menu entry instead
+  const sidebar = document.querySelector('.sidebar');
+  const swatches = document.querySelector('.swatches');
+  document.addEventListener('navbeforefocus', (e) => {
+    if (!swatches.contains(e.target) || sidebar.contains(document.activeElement)) {
+      return;
+    }
+    e.preventDefault();
+    if (e.detail.dir === 'left') {
+      document.querySelector('.nav-item.is-active').focus();
+    }
+  });
 });
