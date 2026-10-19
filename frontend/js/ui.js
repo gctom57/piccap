@@ -188,4 +188,33 @@ window.addEventListener('load', () => {
 
   const piccapVersion = appInfo.version;
   document.getElementById('txtPicCapVersion').innerHTML = `v${piccapVersion}`;
+
+  // Time of the last event in the status bar, whoever sets the message
+  const state = document.getElementById('txtInfoState');
+  const time = document.getElementById('txtInfoTime');
+  const pad = (n) => (n < 10 ? `0${n}` : String(n));
+  const stamp = () => {
+    const d = new Date();
+    time.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  };
+  if (window.MutationObserver) {
+    new MutationObserver(stamp).observe(state, {
+      childList: true, characterData: true, subtree: true,
+    });
+  }
+  stamp();
+
+  // From the bottom of a page the theme swatches are the nearest target. Keep
+  // them for the menu: Left goes to the current view's menu entry instead
+  const sidebar = document.querySelector('.sidebar');
+  const swatches = document.querySelector('.swatches');
+  document.addEventListener('navbeforefocus', (e) => {
+    if (!swatches.contains(e.target) || sidebar.contains(document.activeElement)) {
+      return;
+    }
+    e.preventDefault();
+    if (e.detail.dir === 'left') {
+      document.querySelector('.nav-item.is-active').focus();
+    }
+  });
 });

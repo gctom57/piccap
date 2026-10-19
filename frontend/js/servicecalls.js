@@ -235,6 +235,54 @@ function showHealth(health) {
   document.getElementById('txtHealthTiming').textContent = parts.length && health.frames > 0 ? `${parts.join(' · ')} ms` : '-';
 }
 
+// The main action is the one that changes the current state
+function setPrimaryAction(running) {
+  const start = document.getElementById('btnServiceStart');
+  const stop = document.getElementById('btnServiceStop');
+  start.className = running ? 'btn' : 'btn btn-primary';
+  stop.className = running ? 'btn btn-primary' : 'btn';
+}
+
+// Status tiles: what the settings say capture should be doing
+function showSettingsSummary(settings) {
+  const text = (id, value) => { document.getElementById(id).textContent = value; };
+  text('txtInfoFpsTarget', `${settings.fps ? `target ${settings.fps}` : 'no limit'} · VSync ${settings.vsync ? 'on' : 'off'}`);
+  text('txtInfoResolution', `${settings.width} × ${settings.height}`);
+  text('txtInfoFormat', settings.nv12 ? 'NV12' : 'RGB · NV12 off');
+  const mode = (disabled, backend) => {
+    if (disabled) return 'disabled in Settings';
+    return !backend || backend === 'auto' ? 'chosen automatically' : 'set in Settings';
+  };
+  text('txtInfoVideoMode', mode(settings.novideo, settings.backend));
+  text('txtInfoUIMode', mode(settings.nogui, settings.uibackend));
+  if (settings['unix-socket']) {
+    text('txtInfoReceiverAddress', settings.address || '-');
+    text('txtInfoReceiverDetail', `local socket · priority ${settings.priority}`);
+  } else {
+    text('txtInfoReceiverAddress', settings.address ? `${settings.address}:${settings.port}` : 'not set');
+    text('txtInfoReceiverDetail', `priority ${settings.priority} · TCP`);
+  }
+}
+
+/* ---------------- Unsaved changes ---------------- */
+
+let savedForm = null;
+
+// Every field of the Settings page, as one comparable string
+function settingsFormState() {
+  const fields = document.getElementById('settings').querySelectorAll('input, select');
+  return Array.prototype.map.call(fields, (f) => `${f.id}=${f.type === 'checkbox' ? f.checked : f.value}`).join('&');
+}
+
+function updateDirty() {
+  document.getElementById('settingsDirty').hidden = savedForm === null || settingsFormState() === savedForm;
+}
+
+function rememberSavedForm() {
+  savedForm = settingsFormState();
+  updateDirty();
+}
+
 function getStatus() {
   document.getElementById('txtInfoState').innerHTML = 'Getting status info..';
   /* eslint-disable no-undef */
@@ -266,6 +314,9 @@ function getStatus() {
             heroState = result.connected ? 'running' : 'waiting';
           }
           setState('serviceHero', heroState);
+          setPrimaryAction(result.isRunning === true);
+          document.getElementById('txtServiceUptime').textContent = result.health && typeof result.health.uptime === 'number'
+            ? ` · up ${formatUptime(result.health.uptime)}` : '';
           setState('tileReceiver', result.connected ? 'ok' : 'off');
           let videoState = 'off';
           if (result.videoRunning) {
@@ -357,6 +408,8 @@ function getSettings() {
 
           settingsLoaded = true;
           setSettingsButtonsEnabled(true);
+          showSettingsSummary(result);
+          rememberSavedForm();
           // eslint-disable-next-line no-use-before-define
           maybeShowWizard(result);
           logIt('Loading settings done!');
@@ -893,6 +946,9 @@ function pollPreview() {
 window.addEventListener('load', () => {
   logIt('Startup of PicCap...');
   setSettingsButtonsEnabled(false);
+  const settingsPage = document.getElementById('settings');
+  settingsPage.addEventListener('input', updateDirty);
+  settingsPage.addEventListener('change', updateDirty);
   checkRoot();
 
   logIt('Starting load settings loop...');

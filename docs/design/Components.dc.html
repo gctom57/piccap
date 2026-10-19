@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PicCap — Components and focus states</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0C0E12}
+a{color:#F2F3F5}a:hover{color:#FFFFFF}
+</style>
+</helmet>
+<div style="width: 1920px; height: 760px; box-sizing: border-box; display: flex; flex-direction: column; gap: 36px; padding: 56px 72px; overflow: hidden; background: #0C0E12; color: #F2F3F5; font-family: 'Sora', sans-serif">
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 32px">
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <h1 style="margin: 0; font-size: 40px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.05">Components and focus states</h1>
+      <div style="font-size: 20px; color: #8A93A1">Remote-first: one focus ring for every control, 44 px minimum targets, no hover-only affordances</div>
+    </div>
+    <div style="display: flex; gap: 12px">
+      <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+        <div style="width: 56px; height: 56px; border-radius: 14px; background: #0C0E12; border: 1px solid #2A313D"></div>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #8A93A1">#0C0E12</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+        <div style="width: 56px; height: 56px; border-radius: 14px; background: #151921; border: 1px solid #2A313D"></div>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #8A93A1">#151921</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+        <div style="width: 56px; height: 56px; border-radius: 14px; background: #1C212B; border: 1px solid #2A313D"></div>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #8A93A1">#1C212B</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+        <div style="width: 56px; height: 56px; border-radius: 14px; background: {{accent}}"></div>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #8A93A1">accent</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+        <div style="width: 56px; height: 56px; border-radius: 14px; background: #5CE0A1"></div>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #8A93A1">#5CE0A1</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+        <div style="width: 56px; height: 56px; border-radius: 14px; background: #FF8B83"></div>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #8A93A1">#FF8B83</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+        <div style="width: 56px; height: 56px; border-radius: 14px; background: #8FB8F5"></div>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #8A93A1">#8FB8F5</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; align-items: start">
+
+    <section aria-labelledby="c-buttons" style="display: flex; flex-direction: column; gap: 22px; padding: 28px; box-sizing: border-box; background: #12151B; border: 1px solid #1B2029; border-radius: 24px">
+      <div id="c-buttons" style="font-size: 16px; letter-spacing: 0.14em; text-transform: uppercase; color: #8A93A1; font-weight: 700">Buttons</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 18px; align-items: center">
+        <button style="height: 64px; padding: 0 30px; border-radius: 16px; border: 0; background: {{accent}}; color: #1A1405; font-family: 'Sora', sans-serif; font-size: 23px; font-weight: 700; cursor: pointer">Primary</button>
+        <button style="height: 64px; padding: 0 30px; border-radius: 16px; border: 0; background: {{accent}}; color: #1A1405; font-family: 'Sora', sans-serif; font-size: 23px; font-weight: 700; cursor: pointer; box-shadow: {{ring}}">Primary · focus</button>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 18px; align-items: center">
+        <button style="height: 64px; padding: 0 30px; border-radius: 16px; border: 1px solid #2A313D; background: #1C212B; color: #F2F3F5; font-family: 'Sora', sans-serif; font-size: 23px; font-weight: 600; cursor: pointer">Secondary</button>
+        <button style="height: 64px; padding: 0 30px; border-radius: 16px; border: 1px solid #2A313D; background: #1C212B; color: #F2F3F5; font-family: 'Sora', sans-serif; font-size: 23px; font-weight: 600; cursor: pointer; box-shadow: {{ring}}">Secondary · focus</button>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 18px; align-items: center">
+        <button style="height: 64px; padding: 0 30px; border-radius: 16px; border: 1px solid #5A2A28; background: transparent; color: #FF8B83; font-family: 'Sora', sans-serif; font-size: 23px; font-weight: 600; cursor: pointer">Danger</button>
+        <button disabled style="height: 64px; padding: 0 30px; border-radius: 16px; border: 1px solid #1E242E; background: #12151B; color: #5B6470; font-family: 'Sora', sans-serif; font-size: 23px; font-weight: 600">Disabled</button>
+      </div>
+      <div style="font-size: 17px; color: #8A93A1; line-height: 1.4">Focus = 4 px accent ring + 6 px halo. Same ring for pointer hover on the Magic Remote.</div>
+    </section>
+
+    <section aria-labelledby="c-inputs" style="display: flex; flex-direction: column; gap: 22px; padding: 28px; box-sizing: border-box; background: #12151B; border: 1px solid #1B2029; border-radius: 24px">
+      <div id="c-inputs" style="font-size: 16px; letter-spacing: 0.14em; text-transform: uppercase; color: #8A93A1; font-weight: 700">Toggles, inputs, selects</div>
+      <div style="display: flex; gap: 28px; align-items: center">
+        <div style="display: flex; flex-direction: column; gap: 10px; align-items: center">
+          <button aria-label="Example toggle, on" aria-pressed="true" style="position: relative; width: 72px; height: 40px; border-radius: 20px; background: {{accent}}; border: 0; padding: 0; cursor: pointer">
+            <span style="position: absolute; top: 4px; left: 36px; width: 32px; height: 32px; border-radius: 16px; background: #1A1405"></span>
+          </button>
+          <span style="font-size: 15px; color: #8A93A1">on</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px; align-items: center">
+          <button aria-label="Example toggle, off" aria-pressed="false" style="position: relative; width: 72px; height: 40px; border-radius: 20px; background: #2A3140; border: 0; padding: 0; cursor: pointer">
+            <span style="position: absolute; top: 4px; left: 4px; width: 32px; height: 32px; border-radius: 16px; background: #C9D0DB"></span>
+          </button>
+          <span style="font-size: 15px; color: #8A93A1">off</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px; align-items: center">
+          <button aria-label="Example toggle, off and focused" aria-pressed="false" style="position: relative; width: 72px; height: 40px; border-radius: 20px; background: #2A3140; border: 0; padding: 0; cursor: pointer; box-shadow: {{ring}}">
+            <span style="position: absolute; top: 4px; left: 4px; width: 32px; height: 32px; border-radius: 16px; background: #C9D0DB"></span>
+          </button>
+          <span style="font-size: 15px; color: #8A93A1">focus</span>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; align-items: center; gap: 16px">
+          <label for="demo-in" style="width: 90px; font-size: 21px; color: #DCE0E6">Input</label>
+          <input id="demo-in" value="19400" style="width: 240px; height: 54px; box-sizing: border-box; padding: 0 18px; border-radius: 12px; border: 1px solid #2A313D; background: #1C212B; color: #F2F3F5; font-family: 'JetBrains Mono', monospace; font-size: 23px; font-weight: 500; outline: none">
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px">
+          <label for="demo-in2" style="width: 90px; font-size: 21px; color: #DCE0E6">Focus</label>
+          <input id="demo-in2" value="192.168.1.19" style="width: 240px; height: 54px; box-sizing: border-box; padding: 0 18px; border-radius: 12px; border: 1px solid #2A313D; background: #1C212B; color: #F2F3F5; font-family: 'JetBrains Mono', monospace; font-size: 23px; font-weight: 500; outline: none; box-shadow: {{ring}}">
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px">
+          <span style="width: 90px; font-size: 21px; color: #DCE0E6">Select</span>
+          <button aria-haspopup="listbox" aria-label="Example select: Automatic" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 240px; height: 54px; box-sizing: border-box; padding: 0 14px 0 18px; border-radius: 12px; border: 1px solid #2A313D; background: #1C212B; color: #F2F3F5; font-family: 'Sora', sans-serif; font-size: 21px; font-weight: 500; cursor: pointer; text-align: left">
+            <span>Automatic</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8A93A1" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+          </button>
+        </div>
+      </div>
+      <div style="font-size: 17px; color: #8A93A1; line-height: 1.4">Values in JetBrains Mono so IPs, ports and sizes line up; labels in Sora.</div>
+    </section>
+
+    <section aria-labelledby="c-nav" style="display: flex; flex-direction: column; gap: 22px; padding: 28px; box-sizing: border-box; background: #12151B; border: 1px solid #1B2029; border-radius: 24px">
+      <div id="c-nav" style="font-size: 16px; letter-spacing: 0.14em; text-transform: uppercase; color: #8A93A1; font-weight: 700">Navigation and status chips</div>
+      <div style="display: flex; flex-direction: column; gap: 6px; width: 272px">
+        <a href="#nav-default" style="display: flex; align-items: center; gap: 18px; height: 64px; padding: 0 20px; border-radius: 16px; color: #A6ADB9; font-size: 23px; font-weight: 600; text-decoration: none">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M7 9l3 3-3 3M12 15h5"></path></svg>
+          <span>Default</span>
+        </a>
+        <a href="#nav-active" aria-current="page" style="display: flex; align-items: center; gap: 18px; height: 64px; padding: 0 20px; border-radius: 16px; background: #1B2130; color: #F2F3F5; font-size: 23px; font-weight: 700; text-decoration: none">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M7 9l3 3-3 3M12 15h5"></path></svg>
+          <span>Active page</span>
+        </a>
+        <a href="#nav-focus" style="display: flex; align-items: center; gap: 18px; height: 64px; padding: 0 20px; border-radius: 16px; background: #1B2130; color: #F2F3F5; font-size: 23px; font-weight: 600; text-decoration: none; box-shadow: {{ring}}">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M7 9l3 3-3 3M12 15h5"></path></svg>
+          <span>Focused</span>
+        </a>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center">
+        <div style="display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 18px; border-radius: 22px; background: #0F2A1F; border: 1px solid #1E4A36; color: #5CE0A1; font-size: 19px; font-weight: 700">
+          <span style="width: 10px; height: 10px; border-radius: 5px; background: #5CE0A1"></span>
+          <span>Capturing</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 18px; border-radius: 22px; background: #2A2208; border: 1px solid #4A3B12; color: #F2B544; font-size: 19px; font-weight: 700">
+          <span style="width: 10px; height: 10px; border-radius: 5px; background: #F2B544"></span>
+          <span>Starting</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 18px; border-radius: 22px; background: #1C212B; border: 1px solid #2A313D; color: #A6ADB9; font-size: 19px; font-weight: 700">
+          <span style="width: 10px; height: 10px; border-radius: 5px; background: #6F7886"></span>
+          <span>Stopped</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 18px; border-radius: 22px; background: #3A1A18; border: 1px solid #5A2A28; color: #FF8B83; font-size: 19px; font-weight: 700">
+          <span style="width: 10px; height: 10px; border-radius: 5px; background: #FF8B83"></span>
+          <span>Unreachable</span>
+        </div>
+      </div>
+      <div style="font-size: 17px; color: #8A93A1; line-height: 1.4">Type scale at 1080p: 56 / 40 / 30 / 26 / 22 / 18 px. Nothing a viewer must read sits under 18 px.</div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F2B544","options":["#F2B544","#5CE0A1","#7FB4FF","#FF7B72"]},"$preview":{"width":1920,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#F2B544';
+    let h = accent.replace('#', '');
+    if (h.length === 3) { h = h.split('').map((c) => c + c).join(''); }
+    const n = parseInt(h, 16);
+    const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    const glow = 'rgba(' + r + ',' + g + ',' + b + ',0.32)';
+    const ring = '0 0 0 4px ' + accent + ', 0 0 0 10px ' + glow;
+    return { accent, glow, ring };
+  }
+}
+</script>
+</body>
+</html>
